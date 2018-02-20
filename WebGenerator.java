@@ -1,36 +1,44 @@
 package org.apache.jmeter.visualizers;
 
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.jmeter.JMeter;
 import org.apache.jmeter.engine.StandardJMeterEngine;
+import org.apache.jmeter.gui.GuiPackage;
+import org.apache.jmeter.gui.tree.JMeterTreeListener;
+import org.apache.jmeter.gui.tree.JMeterTreeModel;
+import org.apache.jmeter.gui.tree.JMeterTreeNode;
+import org.apache.jmeter.gui.util.JMeterMenuBar;
 import org.apache.jmeter.report.config.ConfigurationException;
 import org.apache.jmeter.report.dashboard.GenerationException;
 import org.apache.jmeter.report.dashboard.ReportGenerator;
+import org.apache.jmeter.reporters.ResultCollector;
 import org.apache.jmeter.samplers.SampleResult;
+import org.apache.jmeter.testelement.TestPlan;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jmeter.util.Calculator;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
+import org.apache.jorphan.collections.HashTree;
 import org.apache.jorphan.util.JOrphanUtils;
+import org.apache.jmeter.testelement.TestElement;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.io.*;
-import java.net.URLEncoder;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.jmeter.testelement.TestElement;
-import org.apache.jmeter.testelement.TestStateListener;
-import org.apache.jmeter.util.JMeterUtils;
+import static org.apache.jmeter.JMeter.convertSubTree;
 
 /**
  * This class generates results to website.
@@ -60,9 +68,12 @@ public class WebGenerator extends AbstractVisualizer {
     private boolean changeName = false; // Auxiliary variables for control of csv file
     private String filePath;  // Variable for path to the folder with csv file
 
-    public static final String WSPATH = "WebGenerator.websitePath";
-    public static final String GENAFTE = "WebGenerator.checkGenerateAfterTest";
-    public static final String INCLTHN = "WebGenerator.inclThreadGrpName";
+    public static final String webGeneratorGuiClass = (WebGenerator.class).getCanonicalName();
+
+    private static final String WSPATH = "WebGenerator.websitePath";
+    private static final String GENAFTE = "WebGenerator.checkGenerateAfterTest";
+    private static final String INCLTHN = "WebGenerator.inclThreadGrpName";
+    private static final String ISINPR = "WebGenerator.isPluginInProject";
 
     /**
      * {@inheritDoc}
@@ -92,9 +103,33 @@ public class WebGenerator extends AbstractVisualizer {
      * In constructor is called method "clearData" and "init". Those methods are for preparation of first run.
      */
     public WebGenerator() {
+        /*
+        JMeterTreeNode nodes = GuiPackage.getInstance().getTreeModel().getNodeOf(GuiPackage.getInstance().getCurrentElement());
+        HashTree mnodes = GuiPackage.getInstance().getTreeModel().getTestPlan();
+        //String i = nodes.getTestElement().getPropertyAsString(TestElement.GUI_CLASS);
+        String i = "al";
+
+        JMeterTreeNode lo = GuiPackage.getInstance().getTreeListener().getCurrentNode();
+
+        lo.getTestElement();
+
+        for (Object o : new LinkedList<>(mnodes.list())) {
+
+           if(((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)){
+               log.error("Ano!");
+           }else{
+               log.error("Ne. :(");
+           }
+            log.error(((JMeterTreeNode) o).getName());
+            TestElement li = ((JMeterTreeNode) o).getTestElement();
+            i = ((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.NAME);
+        }
+
+        log.error("Velikost menu: " + i + " " + TestElement.GUI_CLASS);
+        */
+
         clearData();
         init();
-        //setName(getStaticLabel());
     }
 
     /**
