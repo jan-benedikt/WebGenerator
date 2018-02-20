@@ -60,6 +60,33 @@ public class WebGenerator extends AbstractVisualizer {
     private boolean changeName = false; // Auxiliary variables for control of csv file
     private String filePath;  // Variable for path to the folder with csv file
 
+    public static final String WSPATH = "WebGenerator.websitePath";
+    public static final String GENAFTE = "WebGenerator.checkGenerateAfterTest";
+    public static final String INCLTHN = "WebGenerator.inclThreadGrpName";
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void modifyTestElement(TestElement element){
+        super.modifyTestElement(element);
+
+        element.setProperty(WebGenerator.GENAFTE, afterEndGenerateWebsite.getState());
+        element.setProperty(WebGenerator.INCLTHN, checkInclGroupName.getState());
+        element.setProperty(WebGenerator.WSPATH, textPath.getText());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void configure(TestElement element){
+        super.configure(element);
+        afterEndGenerateWebsite.setState(element.getPropertyAsBoolean(WebGenerator.GENAFTE));
+        checkInclGroupName.setState(element.getPropertyAsBoolean(WebGenerator.INCLTHN));
+        textPath.setText(element.getPropertyAsString(WebGenerator.WSPATH));
+    }
+
     /**
      * Constructor of module WebGenerator.
      * In constructor is called method "clearData" and "init". Those methods are for preparation of first run.
@@ -207,9 +234,9 @@ public class WebGenerator extends AbstractVisualizer {
         File f = new File(path);
         if (f.exists() && !f.isDirectory()) {
             if (checkFileIsEmpty(f)) {
+                changeName = true;
                 return true;
             } else {
-                changeName = true;
                 return false;
             }
         } else {
