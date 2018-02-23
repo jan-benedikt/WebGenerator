@@ -29,6 +29,7 @@ import org.apache.jmeter.report.config.ConfigurationException;
 import org.apache.jmeter.report.dashboard.GenerationException;
 import org.apache.jmeter.report.dashboard.ReportGenerator;
 import org.apache.jmeter.reporters.ResultCollector;
+import org.apache.jmeter.samplers.RemoteSampleListener;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.testelement.TestPlan;
 import org.apache.jmeter.testelement.TestStateListener;
@@ -117,41 +118,39 @@ public class WebGenerator extends AbstractVisualizer {
         ActionRouter.getInstance().addPreActionListener(EditCommand.class, new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        log.error("PreAction");
-//                        if (e.getSource() instanceof JMeterTreeListener) {
-//                            JMeterTreeNode parent = (JMeterTreeNode)((JMeterTreeListener)e.getSource()).getCurrentNode().getParent();
-//                            if (parent != null) {
-//                                if (!(parent.getTestElement() instanceof NAThreadGroup)) { //To exclude overwritting by last call of the pre-listener
-//                                    editedNodeParent = parent;
-//                                }
-//                            }
-//
-//                        }
+
                     }
         });
 
         ActionRouter.getInstance().addPostActionListener(EditCommand.class, new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        log.error("PostAction");
-                        //                        List nodes = GuiPackage.getInstance().getTreeModel().getNodesOfType(ResultCollector.class);
-//
-//                        JMeterTreeNode lo = GuiPackage.getInstance().getTreeListener().getCurrentNode();
-//
-//                        lo.getTestElement();
-//
-//                        log.error("----------------------------------------------------------");
-//                        log.error("WebGenerator");
-//                        log.error("----------------------------------------------------------");
-//
-//                        for (Object o : new LinkedList<>(nodes)) {
-//
-//                            if(((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)){
-//                                log.error("Ano!");
-//                            }else{
-//                                log.error("Ne. :( " + TestElement.GUI_CLASS + " | " + webGeneratorGuiClass);
-//                            }
-//                        }
+                        List nodes = GuiPackage.getInstance().getTreeModel().getNodesOfType(ResultCollector.class);
+                        boolean included = false;
+
+                        if (nodes.size() != 0) {
+                            for (Object o : new LinkedList<>(nodes)) {
+                                if (((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
+                                    if (included) {
+                                        JMeterTreeNode currentNode = GuiPackage.getInstance().getCurrentNode();
+                                        JMeterTreeModel jmeterTreeModel = (JMeterTreeModel) GuiPackage.getInstance().getMainFrame().getTree().getModel();
+                                        if (currentNode.getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
+                                            JMeterTreeNode parentNode = (JMeterTreeNode) currentNode.getParent();
+                                            if (parentNode.getChildCount() > 1) {
+                                                log.error("list: " + nodes.size() + " " + ((JMeterTreeNode) o).getName() + " ");
+                                                jmeterTreeModel.removeNodeFromParent(currentNode);
+                                                jmeterTreeModel.reload(parentNode);
+                                                log.warn(JMeterUtils.getResString("wgen_log_adding_to_tree_title") + " : " + JMeterUtils.getResString("wgen_log_adding_to_tree"));
+                                            }
+                                        }
+                                    } else {
+                                        included = true;
+                                    }
+                                } else {
+                                    log.error("Ne. :( " + TestElement.GUI_CLASS + " | " + webGeneratorGuiClass);
+                                }
+                            }
+                        }
                     }
         });
 
@@ -167,6 +166,7 @@ public class WebGenerator extends AbstractVisualizer {
                                 jmeterTreeModel.reload(parentNode);
                                 JOptionPane.showMessageDialog(null, JMeterUtils.getResString("wgen_log_adding_to_tree_title"),
                                         JMeterUtils.getResString("wgen_log_adding_to_tree"), JOptionPane.ERROR_MESSAGE);
+                                log.warn(JMeterUtils.getResString("wgen_log_adding_to_tree_title") + " : " + JMeterUtils.getResString("wgen_log_adding_to_tree"));
                             }
                         }
                     }
