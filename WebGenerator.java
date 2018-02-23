@@ -7,6 +7,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -16,6 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.jmeter.JMeter;
 import org.apache.jmeter.engine.StandardJMeterEngine;
 import org.apache.jmeter.gui.GuiPackage;
+import org.apache.jmeter.gui.action.ActionRouter;
+import org.apache.jmeter.gui.action.AddThinkTimeBetweenEachStep;
+import org.apache.jmeter.gui.action.AddToTree;
+import org.apache.jmeter.gui.action.EditCommand;
 import org.apache.jmeter.gui.tree.JMeterTreeListener;
 import org.apache.jmeter.gui.tree.JMeterTreeModel;
 import org.apache.jmeter.gui.tree.JMeterTreeNode;
@@ -103,33 +108,71 @@ public class WebGenerator extends AbstractVisualizer {
      * In constructor is called method "clearData" and "init". Those methods are for preparation of first run.
      */
     public WebGenerator() {
-        /*
-        JMeterTreeNode nodes = GuiPackage.getInstance().getTreeModel().getNodeOf(GuiPackage.getInstance().getCurrentElement());
-        HashTree mnodes = GuiPackage.getInstance().getTreeModel().getTestPlan();
-        //String i = nodes.getTestElement().getPropertyAsString(TestElement.GUI_CLASS);
-        String i = "al";
-
-        JMeterTreeNode lo = GuiPackage.getInstance().getTreeListener().getCurrentNode();
-
-        lo.getTestElement();
-
-        for (Object o : new LinkedList<>(mnodes.list())) {
-
-           if(((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)){
-               log.error("Ano!");
-           }else{
-               log.error("Ne. :(");
-           }
-            log.error(((JMeterTreeNode) o).getName());
-            TestElement li = ((JMeterTreeNode) o).getTestElement();
-            i = ((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.NAME);
-        }
-
-        log.error("Velikost menu: " + i + " " + TestElement.GUI_CLASS);
-        */
-
+        addActionRouterListeners();
         clearData();
         init();
+    }
+
+    private void addActionRouterListeners(){
+        ActionRouter.getInstance().addPreActionListener(EditCommand.class, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        log.error("PreAction");
+//                        if (e.getSource() instanceof JMeterTreeListener) {
+//                            JMeterTreeNode parent = (JMeterTreeNode)((JMeterTreeListener)e.getSource()).getCurrentNode().getParent();
+//                            if (parent != null) {
+//                                if (!(parent.getTestElement() instanceof NAThreadGroup)) { //To exclude overwritting by last call of the pre-listener
+//                                    editedNodeParent = parent;
+//                                }
+//                            }
+//
+//                        }
+                    }
+        });
+
+        ActionRouter.getInstance().addPostActionListener(EditCommand.class, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        log.error("PostAction");
+                        //                        List nodes = GuiPackage.getInstance().getTreeModel().getNodesOfType(ResultCollector.class);
+//
+//                        JMeterTreeNode lo = GuiPackage.getInstance().getTreeListener().getCurrentNode();
+//
+//                        lo.getTestElement();
+//
+//                        log.error("----------------------------------------------------------");
+//                        log.error("WebGenerator");
+//                        log.error("----------------------------------------------------------");
+//
+//                        for (Object o : new LinkedList<>(nodes)) {
+//
+//                            if(((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)){
+//                                log.error("Ano!");
+//                            }else{
+//                                log.error("Ne. :( " + TestElement.GUI_CLASS + " | " + webGeneratorGuiClass);
+//                            }
+//                        }
+                    }
+        });
+
+        ActionRouter.getInstance().addPostActionListener(AddToTree.class, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        JMeterTreeNode currentNode = GuiPackage.getInstance().getCurrentNode();
+                        JMeterTreeModel jmeterTreeModel = (JMeterTreeModel)GuiPackage.getInstance().getMainFrame().getTree().getModel();
+                        if (currentNode.getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
+                            JMeterTreeNode parentNode = (JMeterTreeNode)currentNode.getParent();
+                            if (parentNode.getChildCount() > 1) {
+                                jmeterTreeModel.removeNodeFromParent(currentNode);
+                                jmeterTreeModel.reload(parentNode);
+                                JOptionPane.showMessageDialog(null, JMeterUtils.getResString("wgen_log_adding_to_tree_title"),
+                                        JMeterUtils.getResString("wgen_log_adding_to_tree"), JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
+                    }
+        });
+
+
     }
 
     /**
