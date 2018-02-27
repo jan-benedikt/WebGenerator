@@ -1,10 +1,30 @@
 package org.apache.jmeter.visualizers;
 
+import org.apache.jmeter.JMeter;
+import org.apache.jmeter.engine.StandardJMeterEngine;
+import org.apache.jmeter.gui.GuiPackage;
+import org.apache.jmeter.gui.action.*;
+import org.apache.jmeter.gui.tree.JMeterTreeModel;
+import org.apache.jmeter.gui.tree.JMeterTreeNode;
+import org.apache.jmeter.report.config.ConfigurationException;
+import org.apache.jmeter.report.dashboard.GenerationException;
+import org.apache.jmeter.report.dashboard.ReportGenerator;
+import org.apache.jmeter.reporters.ResultCollector;
+import org.apache.jmeter.samplers.SampleResult;
+import org.apache.jmeter.testelement.TestElement;
+import org.apache.jmeter.testelement.TestStateListener;
+import org.apache.jmeter.threads.JMeterContextService;
+import org.apache.jmeter.util.Calculator;
+import org.apache.jmeter.util.JMeterUtils;
+import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
+import org.apache.jorphan.util.JOrphanUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,37 +33,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.jmeter.JMeter;
-import org.apache.jmeter.engine.StandardJMeterEngine;
-import org.apache.jmeter.gui.GuiPackage;
-import org.apache.jmeter.gui.action.ActionRouter;
-import org.apache.jmeter.gui.action.AddThinkTimeBetweenEachStep;
-import org.apache.jmeter.gui.action.AddToTree;
-import org.apache.jmeter.gui.action.EditCommand;
-import org.apache.jmeter.gui.tree.JMeterTreeListener;
-import org.apache.jmeter.gui.tree.JMeterTreeModel;
-import org.apache.jmeter.gui.tree.JMeterTreeNode;
-import org.apache.jmeter.gui.util.JMeterMenuBar;
-import org.apache.jmeter.report.config.ConfigurationException;
-import org.apache.jmeter.report.dashboard.GenerationException;
-import org.apache.jmeter.report.dashboard.ReportGenerator;
-import org.apache.jmeter.reporters.ResultCollector;
-import org.apache.jmeter.samplers.SampleResult;
-import org.apache.jmeter.testelement.TestPlan;
-import org.apache.jmeter.testelement.TestStateListener;
-import org.apache.jmeter.threads.JMeterContextService;
-import org.apache.jmeter.util.Calculator;
-import org.apache.jmeter.util.JMeterUtils;
-import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
-import org.apache.jorphan.collections.HashTree;
-import org.apache.jorphan.util.JOrphanUtils;
-import org.apache.jmeter.testelement.TestElement;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static org.apache.jmeter.JMeter.convertSubTree;
 
 /**
  * This class generates results to website.
@@ -73,12 +62,11 @@ public class WebGenerator extends AbstractVisualizer {
     private boolean changeName = false; // Auxiliary variables for control of csv file
     private String filePath;  // Variable for path to the folder with csv file
 
-    public static final String webGeneratorGuiClass = (WebGenerator.class).getCanonicalName();
+    private static final String webGeneratorGuiClass = (WebGenerator.class).getCanonicalName();
 
     private static final String WSPATH = "WebGenerator.websitePath";
     private static final String GENAFTE = "WebGenerator.checkGenerateAfterTest";
     private static final String INCLTHN = "WebGenerator.inclThreadGrpName";
-    private static final String ISINPR = "WebGenerator.isPluginInProject";
 
     /**
      * {@inheritDoc}
@@ -113,66 +101,93 @@ public class WebGenerator extends AbstractVisualizer {
         init();
     }
 
-    private void addActionRouterListeners(){
-        ActionRouter.getInstance().addPreActionListener(EditCommand.class, new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        log.error("PreAction");
-//                        if (e.getSource() instanceof JMeterTreeListener) {
-//                            JMeterTreeNode parent = (JMeterTreeNode)((JMeterTreeListener)e.getSource()).getCurrentNode().getParent();
-//                            if (parent != null) {
-//                                if (!(parent.getTestElement() instanceof NAThreadGroup)) { //To exclude overwritting by last call of the pre-listener
-//                                    editedNodeParent = parent;
-//                                }
-//                            }
-//
-//                        }
-                    }
-        });
+    /**
+     * Method for checking of presence module in TreeModel. In TreeModel is allowed only one instance.
+     * @param showPopup boolean for showing popup error window.
+     */
+    private void checkAndRemoveModule(boolean showPopup){
+        List nodes = GuiPackage.getInstance().getTreeModel().getNodesOfType(ResultCollector.class);
+        boolean included = false;
 
-        ActionRouter.getInstance().addPostActionListener(EditCommand.class, new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        log.error("PostAction");
-                        //                        List nodes = GuiPackage.getInstance().getTreeModel().getNodesOfType(ResultCollector.class);
-//
-//                        JMeterTreeNode lo = GuiPackage.getInstance().getTreeListener().getCurrentNode();
-//
-//                        lo.getTestElement();
-//
-//                        log.error("----------------------------------------------------------");
-//                        log.error("WebGenerator");
-//                        log.error("----------------------------------------------------------");
-//
-//                        for (Object o : new LinkedList<>(nodes)) {
-//
-//                            if(((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)){
-//                                log.error("Ano!");
-//                            }else{
-//                                log.error("Ne. :( " + TestElement.GUI_CLASS + " | " + webGeneratorGuiClass);
-//                            }
-//                        }
-                    }
-        });
-
-        ActionRouter.getInstance().addPostActionListener(AddToTree.class, new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
+        if (nodes.size() != 0) {
+            for (Object o : new LinkedList<>(nodes)) {
+                if (((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
+                    if (included) {
                         JMeterTreeNode currentNode = GuiPackage.getInstance().getCurrentNode();
-                        JMeterTreeModel jmeterTreeModel = (JMeterTreeModel)GuiPackage.getInstance().getMainFrame().getTree().getModel();
+                        JMeterTreeModel jmeterTreeModel = (JMeterTreeModel) GuiPackage.getInstance().getMainFrame().getTree().getModel();
                         if (currentNode.getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
-                            JMeterTreeNode parentNode = (JMeterTreeNode)currentNode.getParent();
+                            JMeterTreeNode parentNode = (JMeterTreeNode) currentNode.getParent();
                             if (parentNode.getChildCount() > 1) {
                                 jmeterTreeModel.removeNodeFromParent(currentNode);
                                 jmeterTreeModel.reload(parentNode);
-                                JOptionPane.showMessageDialog(null, JMeterUtils.getResString("wgen_log_adding_to_tree_title"),
-                                        JMeterUtils.getResString("wgen_log_adding_to_tree"), JOptionPane.ERROR_MESSAGE);
+                                if(showPopup) {
+                                    JOptionPane.showMessageDialog(null, JMeterUtils.getResString("wgen_log_adding_to_tree_title"),
+                                            JMeterUtils.getResString("wgen_log_adding_to_tree"), JOptionPane.ERROR_MESSAGE);
+                                }
+                                log.warn(JMeterUtils.getResString("wgen_log_adding_to_tree_title") + " : " + JMeterUtils.getResString("wgen_log_adding_to_tree"));
                             }
                         }
+                    } else {
+                        included = true;
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Attaches listeners to ActionRouter for actions in TreeModel.
+     */
+    private void addActionRouterListeners(){
+        /*
+           Action Duplicate - this method disable function of duplicate.
+         */
+        ActionRouter.getInstance().addPostActionListener(Duplicate.class, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              checkAndRemoveModule(true);
+            }
         });
 
+        /*
+          Action paste - If is module copied and pasted, automatically is delete.
+         */
+        ActionRouter.getInstance().addPostActionListener(Paste.class, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+               checkAndRemoveModule(true);
+            }
+        });
 
+        /*
+           If is loaded project with more WebGenerator modules than one, others is delete.
+         */
+        ActionRouter.getInstance().addPreActionListener(LoadRecentProject.class, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                checkAndRemoveModule(false);
+            }
+        });
+
+        /*
+           Catch event of editing and check presence of more WebGenerator module than one. Others are delete.
+         */
+        ActionRouter.getInstance().addPostActionListener(EditCommand.class, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                checkAndRemoveModule(true);
+            }
+        });
+
+        /*
+            Catch event of adding to Tree and check presence of more WebGenerator module than one. Others are delete.
+         */
+        ActionRouter.getInstance().addPostActionListener(AddToTree.class, new ActionListener() {
+             @Override
+             public void actionPerformed(ActionEvent e) {
+                 checkAndRemoveModule(true);
+             }
+        });
     }
 
     /**
