@@ -380,6 +380,7 @@ public class WebGenerator extends AbstractVisualizer {
 
         generateWebsiteButton.addActionListener((ActionEvent e) -> {
             try {
+                filePath = getFile();
                 callGenerator();
             } catch (GenerationException e1) {
                 log.error(JMeterUtils.getResString("wgen_log_cant_add_listener") + " " + e1);
@@ -533,12 +534,12 @@ public class WebGenerator extends AbstractVisualizer {
      */
     @Override
     public void add(final SampleResult sample) {
-
+        generateWebsiteButton.setEnabled(true);
         final String sampleLabel = sample.getSampleLabel(checkInclGroupName.getState());
         Calculator calc; //Initialize method Calculator which collects data of results
         SamplingStatCalculator samplingCalc; ////Initialize method samplingCalculator which collects data of percentiles
-        synchronized (lock) {
 
+        synchronized (lock) {
             calc = tableRows.get(sampleLabel);
             samplingCalc = samplingRows.get(sampleLabel);
 
@@ -615,6 +616,7 @@ public class WebGenerator extends AbstractVisualizer {
         if (arrayDataC.size() == 0) {
             arrayDataC.add(0, dataC);
         }
+
         if (arrayDataC.get(0).getName() == null) {
             arrayDataC.get(0).setName(dataC.getName());
             arrayDataC.get(0).setLoopCount(dataC.getLoopCount());
