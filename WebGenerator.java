@@ -10,6 +10,7 @@ import org.apache.jmeter.report.config.ConfigurationException;
 import org.apache.jmeter.report.dashboard.GenerationException;
 import org.apache.jmeter.report.dashboard.ReportGenerator;
 import org.apache.jmeter.reporters.ResultCollector;
+import org.apache.jmeter.samplers.RemoteSampleListener;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.testelement.TestStateListener;
@@ -101,6 +102,7 @@ public class WebGenerator extends AbstractVisualizer {
         init();
     }
 
+<<<<<<< HEAD
     /**
      * Method for checking of presence module in TreeModel. In TreeModel is allowed only one instance.
      * @param showPopup boolean for showing popup error window.
@@ -113,6 +115,51 @@ public class WebGenerator extends AbstractVisualizer {
             for (Object o : new LinkedList<>(nodes)) {
                 if (((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
                     if (included) {
+=======
+    private void addActionRouterListeners(){
+        ActionRouter.getInstance().addPreActionListener(EditCommand.class, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+
+                    }
+        });
+
+        ActionRouter.getInstance().addPostActionListener(EditCommand.class, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        List nodes = GuiPackage.getInstance().getTreeModel().getNodesOfType(ResultCollector.class);
+                        boolean included = false;
+
+                        if (nodes.size() != 0) {
+                            for (Object o : new LinkedList<>(nodes)) {
+                                if (((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
+                                    if (included) {
+                                        JMeterTreeNode currentNode = GuiPackage.getInstance().getCurrentNode();
+                                        JMeterTreeModel jmeterTreeModel = (JMeterTreeModel) GuiPackage.getInstance().getMainFrame().getTree().getModel();
+                                        if (currentNode.getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
+                                            JMeterTreeNode parentNode = (JMeterTreeNode) currentNode.getParent();
+                                            if (parentNode.getChildCount() > 1) {
+                                                log.error("list: " + nodes.size() + " " + ((JMeterTreeNode) o).getName() + " ");
+                                                jmeterTreeModel.removeNodeFromParent(currentNode);
+                                                jmeterTreeModel.reload(parentNode);
+                                                log.warn(JMeterUtils.getResString("wgen_log_adding_to_tree_title") + " : " + JMeterUtils.getResString("wgen_log_adding_to_tree"));
+                                            }
+                                        }
+                                    } else {
+                                        included = true;
+                                    }
+                                } else {
+                                    log.error("Ne. :( " + TestElement.GUI_CLASS + " | " + webGeneratorGuiClass);
+                                }
+                            }
+                        }
+                    }
+        });
+
+        ActionRouter.getInstance().addPostActionListener(AddToTree.class, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+>>>>>>> 2de5fa3eaecc542772b9114f2f8d0de656d7318d
                         JMeterTreeNode currentNode = GuiPackage.getInstance().getCurrentNode();
                         JMeterTreeModel jmeterTreeModel = (JMeterTreeModel) GuiPackage.getInstance().getMainFrame().getTree().getModel();
                         if (currentNode.getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
@@ -120,10 +167,15 @@ public class WebGenerator extends AbstractVisualizer {
                             if (parentNode.getChildCount() > 1) {
                                 jmeterTreeModel.removeNodeFromParent(currentNode);
                                 jmeterTreeModel.reload(parentNode);
+<<<<<<< HEAD
                                 if(showPopup) {
                                     JOptionPane.showMessageDialog(null, JMeterUtils.getResString("wgen_log_adding_to_tree_title"),
                                             JMeterUtils.getResString("wgen_log_adding_to_tree"), JOptionPane.ERROR_MESSAGE);
                                 }
+=======
+                                JOptionPane.showMessageDialog(null, JMeterUtils.getResString("wgen_log_adding_to_tree_title"),
+                                        JMeterUtils.getResString("wgen_log_adding_to_tree"), JOptionPane.ERROR_MESSAGE);
+>>>>>>> 2de5fa3eaecc542772b9114f2f8d0de656d7318d
                                 log.warn(JMeterUtils.getResString("wgen_log_adding_to_tree_title") + " : " + JMeterUtils.getResString("wgen_log_adding_to_tree"));
                             }
                         }
