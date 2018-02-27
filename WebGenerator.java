@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Jan Benedikt, Gity a.s.
  */
 public class WebGenerator extends AbstractVisualizer {
-    private static final long serialVersionUID = 240L; // UID of module
+    private static final long serialVersionUID = 240L; // UID of module WebGenerator
 
     private ArrayList<dataCollector> arrayDataC = new ArrayList<>(); // Object for statistics
     private dataCollector total = new dataCollector(); // Own object for statistics TOTAL
