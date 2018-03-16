@@ -102,72 +102,7 @@ public class WebGenerator extends AbstractVisualizer {
         clearData();
         init();
     }
-
-
-    /**
-     * Method for checking of presence module in TreeModel. In TreeModel is allowed only one instance.
-     * @param showPopup boolean for showing popup error window.
-     */
-    private void checkAndRemoveModule(boolean showPopup){
-        List<JMeterTreeNode> nodes = GuiPackage.getInstance().getTreeModel().getNodesOfType(ResultCollector.class);
-        boolean included = false;
-
-        if (nodes.size() != 0) {
-            for (Object o : new LinkedList<>(nodes)) {
-                if (((JMeterTreeNode) o).getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
-                    if (included) {
-                        JMeterTreeNode currentNode = GuiPackage.getInstance().getCurrentNode();
-                        JMeterTreeModel jmeterTreeModel = (JMeterTreeModel) GuiPackage.getInstance().getMainFrame().getTree().getModel();
-                        if (currentNode.getTestElement().getPropertyAsString(TestElement.GUI_CLASS).equals(webGeneratorGuiClass)) {
-                            JMeterTreeNode parentNode = (JMeterTreeNode) currentNode.getParent();
-                            if (parentNode.getChildCount() > 1) {
-                                jmeterTreeModel.removeNodeFromParent(currentNode);
-                                jmeterTreeModel.reload(parentNode);
-                                if(showPopup) {
-                                    JOptionPane.showMessageDialog(null, JMeterUtils.getResString("wgen_log_adding_to_tree_title"),
-                                            JMeterUtils.getResString("wgen_log_adding_to_tree"), JOptionPane.ERROR_MESSAGE);
-                                }
-                                log.warn(JMeterUtils.getResString("wgen_log_adding_to_tree_title") + " : " + JMeterUtils.getResString("wgen_log_adding_to_tree"));
-                            }
-                        }
-                    } else {
-                        included = true;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Attaches listeners to ActionRouter for actions in TreeModel.
-     */
-    private void addActionRouterListeners(){
-        /*
-           Action Duplicate - this method disable function of duplicate.
-         */
-        getInstance().addPostActionListener(Duplicate.class, e -> checkAndRemoveModule(true));
-
-        /*
-          Action paste - If is module copied and pasted, automatically is delete.
-         */
-        getInstance().addPostActionListener(Paste.class, e -> checkAndRemoveModule(true));
-
-        /*
-           If is loaded project with more WebGenerator modules than one, others is delete.
-         */
-        getInstance().addPreActionListener(LoadRecentProject.class, e -> checkAndRemoveModule(false));
-
-        /*
-           Catch event of editing and check presence of more WebGenerator module than one. Others are delete.
-         */
-        getInstance().addPostActionListener(EditCommand.class, e -> checkAndRemoveModule(true));
-
-        /*
-            Catch event of adding to Tree and check presence of more WebGenerator module than one. Others are delete.
-         */
-        getInstance().addPostActionListener(AddToTree.class, e -> checkAndRemoveModule(true));
-    }
-
+    
     /**
      * Get the component's resource name, which getStaticLabel uses to derive
      * the component's label in the local language. The resource name is fixed,
