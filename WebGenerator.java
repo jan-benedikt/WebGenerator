@@ -1,25 +1,22 @@
-package org.apache.jmeter.visualizers;
+package eu.gity.jmeter.webgenerator;
 
 import org.apache.jmeter.JMeter;
 import org.apache.jmeter.engine.StandardJMeterEngine;
-import org.apache.jmeter.gui.GuiPackage;
-import org.apache.jmeter.gui.action.*;
-import org.apache.jmeter.gui.tree.JMeterTreeModel;
-import org.apache.jmeter.gui.tree.JMeterTreeNode;
 import org.apache.jmeter.report.config.ConfigurationException;
 import org.apache.jmeter.report.dashboard.GenerationException;
 import org.apache.jmeter.report.dashboard.ReportGenerator;
-import org.apache.jmeter.reporters.ResultCollector;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jmeter.util.Calculator;
 import org.apache.jmeter.util.JMeterUtils;
+import org.apache.jmeter.visualizers.SamplingStatCalculator;
 import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
 import org.apache.jorphan.util.JOrphanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -27,12 +24,11 @@ import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+
 
 /**
  * This class generates results to website.
@@ -54,9 +50,10 @@ public class WebGenerator extends AbstractVisualizer {
     private final String TOTAL_ROW_LABEL = JMeterUtils.getResString("wgen_row_total");  //Name of "TOTAL" row in Calculator class
 
     private JButton generateWebsiteButton; // Button for website generating
-    private TextField textPath; // After website generating is shown here path to the folder with website
-    private Checkbox afterEndGenerateWebsite; // After check automatically generates website
-    private Checkbox checkInclGroupName; // After check is in results included name of thread group
+    private JTextField textPath; // After website generating is shown here path to the folder with website
+    private JCheckBox afterEndGenerateWebsite; // After check automatically generates website
+    private JCheckBox checkInclGroupName; // After check is in results included name of thread group
+    private JTextField pathToTemplateFolder; //
 
     private String reportOutputFolder = ""; // Variable for path to generating website
     private boolean changeName = false; // Auxiliary variables for control of csv file
@@ -67,6 +64,9 @@ public class WebGenerator extends AbstractVisualizer {
     private static final String WSPATH = "WebGenerator.websitePath";
     private static final String GENAFTE = "WebGenerator.checkGenerateAfterTest";
     private static final String INCLTHN = "WebGenerator.inclThreadGrpName";
+    private static final String PTWT = "WebGenerator.pathToWesiteTemplate";
+    private static final String JMETER_REPORT_TEMPLATE_DIR_PROPERTY =
+            "jmeter.reportgenerator.exporter.html.property.template_dir";
 
     /**
      * {@inheritDoc}
@@ -75,9 +75,10 @@ public class WebGenerator extends AbstractVisualizer {
     public void modifyTestElement(TestElement element){
         super.modifyTestElement(element);
 
-        element.setProperty(WebGenerator.GENAFTE, afterEndGenerateWebsite.getState());
-        element.setProperty(WebGenerator.INCLTHN, checkInclGroupName.getState());
+        element.setProperty(WebGenerator.GENAFTE, afterEndGenerateWebsite.isSelected());
+        element.setProperty(WebGenerator.INCLTHN, checkInclGroupName.isSelected());
         element.setProperty(WebGenerator.WSPATH, textPath.getText());
+        element.setProperty(WebGenerator.PTWT, pathToTemplateFolder.getText());
     }
 
     /**
@@ -86,9 +87,10 @@ public class WebGenerator extends AbstractVisualizer {
     @Override
     public void configure(TestElement element){
         super.configure(element);
-        afterEndGenerateWebsite.setState(element.getPropertyAsBoolean(WebGenerator.GENAFTE));
-        checkInclGroupName.setState(element.getPropertyAsBoolean(WebGenerator.INCLTHN));
+        afterEndGenerateWebsite.setSelected(element.getPropertyAsBoolean(WebGenerator.GENAFTE));
+        checkInclGroupName.setSelected(element.getPropertyAsBoolean(WebGenerator.INCLTHN));
         textPath.setText(element.getPropertyAsString(WebGenerator.WSPATH));
+        pathToTemplateFolder.setText(WebGenerator.PTWT);
     }
 
     /**
@@ -96,17 +98,18 @@ public class WebGenerator extends AbstractVisualizer {
      * In constructor is called method "clearData" and "init". Those methods are for preparation of first run.
      */
     public WebGenerator() {
-        addActionRouterListeners();
+    	WebGeneratorTreeGuard.getInstance().registerListeners();
         clearData();
         init();
     }
+
 
     /**
      * Method for checking of presence module in TreeModel. In TreeModel is allowed only one instance.
      * @param showPopup boolean for showing popup error window.
      */
     private void checkAndRemoveModule(boolean showPopup){
-        List nodes = GuiPackage.getInstance().getTreeModel().getNodesOfType(ResultCollector.class);
+        List<JMeterTreeNode> nodes = GuiPackage.getInstance().getTreeModel().getNodesOfType(ResultCollector.class);
         boolean included = false;
 
         if (nodes.size() != 0) {
@@ -142,52 +145,27 @@ public class WebGenerator extends AbstractVisualizer {
         /*
            Action Duplicate - this method disable function of duplicate.
          */
-        ActionRouter.getInstance().addPostActionListener(Duplicate.class, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-              checkAndRemoveModule(true);
-            }
-        });
+        getInstance().addPostActionListener(Duplicate.class, e -> checkAndRemoveModule(true));
 
         /*
           Action paste - If is module copied and pasted, automatically is delete.
          */
-        ActionRouter.getInstance().addPostActionListener(Paste.class, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-               checkAndRemoveModule(true);
-            }
-        });
+        getInstance().addPostActionListener(Paste.class, e -> checkAndRemoveModule(true));
 
         /*
            If is loaded project with more WebGenerator modules than one, others is delete.
          */
-        ActionRouter.getInstance().addPreActionListener(LoadRecentProject.class, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                checkAndRemoveModule(false);
-            }
-        });
+        getInstance().addPreActionListener(LoadRecentProject.class, e -> checkAndRemoveModule(false));
 
         /*
            Catch event of editing and check presence of more WebGenerator module than one. Others are delete.
          */
-        ActionRouter.getInstance().addPostActionListener(EditCommand.class, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                checkAndRemoveModule(true);
-            }
-        });
+        getInstance().addPostActionListener(EditCommand.class, e -> checkAndRemoveModule(true));
 
         /*
             Catch event of adding to Tree and check presence of more WebGenerator module than one. Others are delete.
          */
-        ActionRouter.getInstance().addPostActionListener(AddToTree.class, new ActionListener() {
-             @Override
-             public void actionPerformed(ActionEvent e) {
-                 checkAndRemoveModule(true);
-             }
-        });
+        getInstance().addPostActionListener(AddToTree.class, e -> checkAndRemoveModule(true));
     }
 
     /**
@@ -283,7 +261,7 @@ public class WebGenerator extends AbstractVisualizer {
             @Override
             public void testEnded() {
                 if (changeName) {
-                    if (afterEndGenerateWebsite.getState()) {
+                    if (afterEndGenerateWebsite.isSelected()) {
                         changeName = !changeName;
                         try {
                             callGenerator();
@@ -370,13 +348,18 @@ public class WebGenerator extends AbstractVisualizer {
 
         SpringLayout layout = new SpringLayout();
 
-        afterEndGenerateWebsite = new Checkbox(JMeterUtils.getResString("wgen_auto_generate_website"), true);
+        afterEndGenerateWebsite = new JCheckBox(JMeterUtils.getResString("wgen_auto_generate_website"), true);
         generateWebsiteButton = new JButton(JMeterUtils.getResString("wgen_generate"));
-        checkInclGroupName = new Checkbox(JMeterUtils.getResString("wgen_include_thg_name"), false);
-        textPath = new TextField(JMeterUtils.getResString("wgen_path_to_gen_web"));
+        checkInclGroupName = new JCheckBox(JMeterUtils.getResString("wgen_include_thg_name"), false);
+        textPath = new JTextField(JMeterUtils.getResString("wgen_path_to_gen_web"));
         textPath.setSize(afterEndGenerateWebsite.getSize());
         textPath.setEnabled(false);
         generateWebsiteButton.setEnabled(false);
+
+        pathToTemplateFolder = new JTextField(JMeterUtils.getResString("wgen_template_folder"));
+        pathToTemplateFolder.setEnabled(false);
+        pathToTemplateFolder.setSize(afterEndGenerateWebsite.getSize());
+        JButton getPathToTemplateFolder = new JButton(JMeterUtils.getResString("wgen_get_template_path"));
 
         generateWebsiteButton.addActionListener((ActionEvent e) -> {
             try {
@@ -384,6 +367,19 @@ public class WebGenerator extends AbstractVisualizer {
                 callGenerator();
             } catch (GenerationException e1) {
                 log.error(JMeterUtils.getResString("wgen_log_cant_add_listener") + " " + e1);
+            }
+        });
+
+        getPathToTemplateFolder.addActionListener((ActionEvent e) -> {
+            JFileChooser chooser = new JFileChooser();
+            // Note: source for ExampleFileFilter can be found in FileChooserDemo,
+            // under the demo/jfc directory in the JDK.
+            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            int returnVal = chooser.showOpenDialog(null);
+            if(returnVal == JFileChooser.APPROVE_OPTION) {
+                System.out.println("You chose to open this file: " +
+                        chooser.getSelectedFile().getName());
+                pathToTemplateFolder.setText(chooser.getSelectedFile().getAbsolutePath());
             }
         });
 
@@ -397,6 +393,8 @@ public class WebGenerator extends AbstractVisualizer {
         buttons.add(afterEndGenerateWebsite);
         buttons.add(textPath);
         buttons.add(generateWebsiteButton);
+        buttons.add(pathToTemplateFolder);
+        buttons.add(getPathToTemplateFolder);
         buttons.setBorder(new TitledBorder(JMeterUtils.getResString("wgen_options")));
 
         controls.add(buttons, BorderLayout.NORTH);
@@ -449,6 +447,8 @@ public class WebGenerator extends AbstractVisualizer {
         JOrphanUtils.canSafelyWriteToFolder(reportOutputFolderAsFile);
         //Set global variable „.JMETER_REPORT_OUTPUT_DIR_PROPERTY“:
         JMeterUtils.setProperty(JMeter.JMETER_REPORT_OUTPUT_DIR_PROPERTY, reportOutputFolderAsFile.getAbsolutePath());
+        //Set JMeter property of path to website template
+        JMeterUtils.setProperty(JMETER_REPORT_TEMPLATE_DIR_PROPERTY, pathToTemplateFolder.getText());
         //Create of instance „ReportGenerator“ (in argument passes way to file with source data):
         ReportGenerator generator = null;
         try {
@@ -459,18 +459,6 @@ public class WebGenerator extends AbstractVisualizer {
         // Start generating:
         if (generator == null) throw new AssertionError();
         generator.generate();
-
-        /*
-        //Create path to index.html in generated website
-        String completePath = "file:\\\\\\" + reportOutputFolder + "\\index.html";
-        //completePath.replace("\\", "/");
-
-        try {
-            completePath = URLEncoder.encode(completePath, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        */
 
         //Save data to functions.js
 
@@ -498,7 +486,6 @@ public class WebGenerator extends AbstractVisualizer {
         total.setPercentile_95th(0);
         total.setPercentile_99th(0);
         total.setUserCount(0);
-        total.setSamples(0);
         total.setErrorPercent(0);
         total.setMean(0);
         total.setAvgBytes(0);
@@ -508,7 +495,6 @@ public class WebGenerator extends AbstractVisualizer {
         total.setMinDataC(0);
         total.setStDev(0);
         total.setLatency(0);
-        total.setBandwidth(0);
         total.setLoopCount(0);
         total.setSentBytes(0);
         total.setConnectTime(0);
@@ -535,9 +521,9 @@ public class WebGenerator extends AbstractVisualizer {
     @Override
     public void add(final SampleResult sample) {
         generateWebsiteButton.setEnabled(true);
-        final String sampleLabel = sample.getSampleLabel(checkInclGroupName.getState());
+        final String sampleLabel = sample.getSampleLabel(checkInclGroupName.isSelected());
         Calculator calc; //Initialize method Calculator which collects data of results
-        SamplingStatCalculator samplingCalc; ////Initialize method samplingCalculator which collects data of percentiles
+        SamplingStatCalculator samplingCalc; //Initialize method samplingCalculator which collects data of percentiles
 
         synchronized (lock) {
             calc = tableRows.get(sampleLabel);
@@ -552,17 +538,19 @@ public class WebGenerator extends AbstractVisualizer {
                 samplingCalc = new SamplingStatCalculator(sampleLabel);
                 samplingRows.put(samplingCalc.getLabel(), samplingCalc);
             }
-        }
-        synchronized (calc) {
+
             calc.addSample(sample);
             samplingCalc.addSample(sample);
-        }
-        Calculator tot = tableRows.get(TOTAL_ROW_LABEL);
-        SamplingStatCalculator samplingtot = samplingRows.get(TOTAL_ROW_LABEL);
-        synchronized (tot) {
+
+            Calculator tot = tableRows.get(TOTAL_ROW_LABEL);
+            SamplingStatCalculator samplingtot = samplingRows.get(TOTAL_ROW_LABEL);
+
             tot.addSample(sample);
             samplingtot.addSample(sample);
         }
+
+
+
 
         dataCollector dataC = new dataCollector();
         dataC.setName(sampleLabel);
@@ -570,7 +558,6 @@ public class WebGenerator extends AbstractVisualizer {
         dataC.setUserCount(sample.getGroupThreads());
         dataC.setResponseTime(sample.getTime());
         dataC.setConnectTime(sample.getConnectTime());
-        //dataC.setBandwidth(); TODO Find bandwidth
 
         dataC.Comparison = 0;
         if (dataC.WebAddress.size() != 0) {
@@ -589,7 +576,6 @@ public class WebGenerator extends AbstractVisualizer {
         total.setLatency(total.getLatency() + sample.getLatency());
         total.setResponseTime(total.getResponseTime() + sample.getTime());
         total.setConnectTime(total.getConnectTime() + sample.getConnectTime());
-        //total.setBandwidth(); TODO Find bandwidth
 
         total.Comparison = 0;
         if (total.WebAddress.size() != 0) {
@@ -631,8 +617,6 @@ public class WebGenerator extends AbstractVisualizer {
             arrayDataC.get(0).setSentBytes(dataC.getSentBytes());
             arrayDataC.get(0).setAvgBytes(dataC.getAvgBytes());
 
-
-            //arrayDataC.get(0).setBandwidth(dataC.getBandwidth());
             arrayDataC.get(0).setLatency(dataC.getLatency());
             arrayDataC.get(0).setUserCount(dataC.getUserCount());
             arrayDataC.get(0).setResponseTime(dataC.getResponseTime());
@@ -644,14 +628,13 @@ public class WebGenerator extends AbstractVisualizer {
         int findName = 0;
         for (int i = 0; i < arrayDataC.size(); i++) {
             if (arrayDataC.get(i).getName().equals(dataC.getName())) {
-                //arrayDataC.get(i).setBandwidth(dataC.getBandwidth()); TODO Bandwidth - uncomment
 
-                arrayDataC.get(i).setLatency(dataC.getLatency() + arrayDataC.get(i).getLatency()); // TODO Přičítám!
+                arrayDataC.get(i).setLatency(dataC.getLatency() + arrayDataC.get(i).getLatency());
                 if (arrayDataC.get(i).getUserCount() < dataC.getUserCount()) {
                     arrayDataC.get(i).setUserCount(dataC.getUserCount());
                 }
-                arrayDataC.get(i).setResponseTime(dataC.getResponseTime() + arrayDataC.get(i).getResponseTime()); // TODO Přičítám!
-                arrayDataC.get(i).setConnectTime(dataC.getConnectTime() + arrayDataC.get(i).getConnectTime()); // TODO Přičítám!
+                arrayDataC.get(i).setResponseTime(dataC.getResponseTime() + arrayDataC.get(i).getResponseTime());
+                arrayDataC.get(i).setConnectTime(dataC.getConnectTime() + arrayDataC.get(i).getConnectTime());
                 int findAddress = 0;
                 for (int a = 0; a < arrayDataC.get(i).WebAddress.size(); a++) {
                     for (int b = 0; b < dataC.WebAddress.size(); b++) {
@@ -763,7 +746,6 @@ public class WebGenerator extends AbstractVisualizer {
                     bw.write(anArrayCompleteData1.getLatency() + ",");
                     bw.write(anArrayCompleteData1.getConnectTime() + ",");
                     bw.write(anArrayCompleteData1.getResponseTime() + ",");
-                    //bw.write(arrayCompleteData.get(c).getBandwidth() + ","); TODO Bandwidth - uncomment
                     bw.write("[");
                     for (int i = 0; i < anArrayCompleteData1.WebAddress.size(); i++) {
                         bw.write('\"' + anArrayCompleteData1.WebAddress.get(i) + '\"');
@@ -790,19 +772,16 @@ public class WebGenerator extends AbstractVisualizer {
                 bw.write(total.getLatency() + ",");
                 bw.write(total.getConnectTime() + ",");
                 bw.write(total.getResponseTime() + ",");
-                //bw.write(total.getBandwidth() + ","); TODO Bandwidth - uncomment
                 bw.write("[");
-               /* for(int i = 0; i < total.WebAddress.size(); i++){
+                for(int i = 0; i < total.WebAddress.size(); i++){
                     bw.write('\"' + total.WebAddress.get(i) + '\"');
                     if(i < total.WebAddress.size()-1){
                         bw.write(',');
                     }
-                }*/ //TODO Repair including web addresses to TOTAL line
+                }
                 bw.write("]]];");
 
                 bw.newLine();
-                //bw.write("var rampup = " + th.getRampUp() + ";");
-                //bw.newLine();
 
                 bw.write("var percentile = [");
                 for (dataCollector anArrayCompleteData : arrayCompleteData) {
@@ -832,7 +811,6 @@ public class WebGenerator extends AbstractVisualizer {
     private class dataCollector {
         private String Name = "";
         private int UserCount = 0;
-        private int Samples;
         private double Mean;
         private long MinDataC;
         private long MaxDataC;
@@ -842,7 +820,6 @@ public class WebGenerator extends AbstractVisualizer {
         private double ErrorPercent;
         private float Latency;
         private float ResponseTime;
-        private float Bandwidth;
         private int LoopCount;
         private int Comparison;
         private double ReceivedBytes;
@@ -852,7 +829,7 @@ public class WebGenerator extends AbstractVisualizer {
         private double percentile_95th;
         private double percentile_99th;
 
-        ArrayList<String> WebAddress = new ArrayList<>();
+        private ArrayList<String> WebAddress = new ArrayList<>();
 
         private String getName() {
             return Name;
@@ -870,14 +847,6 @@ public class WebGenerator extends AbstractVisualizer {
             UserCount = userCount;
         }
 
-        private int getSamples() {
-            return Samples;
-        }
-
-        private void setSamples(int samples) {
-            Samples = samples;
-        }
-
         private float getLatency() {
             return Latency;
         }
@@ -892,14 +861,6 @@ public class WebGenerator extends AbstractVisualizer {
 
         private void setResponseTime(float ResponseTime) {
             this.ResponseTime = ResponseTime;
-        }
-
-        private float getBandwidth() {
-            return Bandwidth;
-        }
-
-        private void setBandwidth(float bandwidth) {
-            Bandwidth = bandwidth;
         }
 
         private int getLoopCount() {
@@ -1014,4 +975,4 @@ public class WebGenerator extends AbstractVisualizer {
             this.percentile_99th = percentile_99th;
         }
     }
-}
+}}
