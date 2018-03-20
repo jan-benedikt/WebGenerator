@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>DDoS: ${testFile!""}</title>
+    <title>Server: ${testFile!""}</title>
 
     <!-- Bootstrap -->
     <link href="../css/bootstrap.min.css" rel="stylesheet">
@@ -15,6 +15,7 @@
     <script src="../chart/Chart.js"></script>
     <script src="../chart//Chart.bundle.js"></script>
     <script src="../chart//utils.js"></script>
+    <script src="../js/data.js"></script>
     <script src="../js/functions.js"></script>
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -42,8 +43,9 @@
         <li><a href="../../index.html">Summary</a></li>
         <li><a href="error.html">Errors</a></li>
         <li><a href="statistics.html">Statistics</a></li>
-        <li class="active"><a href="ddos.html">DDoS<span class="sr-only">(current)</span></a></li>
-        <li><a href="server.html">Server</a></li></ul>
+        <li><a href="ddos.html">DDoS</a></li>
+        <li class="active"><a href="server.html">Server<span class="sr-only">(current)</span></a></li>
+        </ul>
       <ul class="nav navbar-nav pull-right">
         <li><a href="#" onclick="changeCSS('../css/style.css', 1);">Light Theme</a></li>
         <li><a href="#" onclick="changeCSS('../css/style2.css', 1);">Dark Theme</a></li>

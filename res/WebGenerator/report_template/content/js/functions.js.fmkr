@@ -1,20 +1,4 @@
-    var summaryData = JSON.parse('${requestsSummary!"{}"}');
-    var responseTimePercentiles = JSON.parse('${responseTimePercentiles!"{}"}');
-    var responseTimeDistribution = JSON.parse('${responseTimeDistribution!"{}"}');
-    var activeThreadsOverTime = JSON.parse('${activeThreadsOverTime!"{}"}');
-    var timeVsThreads = JSON.parse('${timeVsThreads!"{}"}');
-    var bytesThroughputOverTime = JSON.parse('${bytesThroughputOverTime!"{}"}');
-    var responseTimesOverTime = JSON.parse('${responseTimesOverTime!"{}"}');
-    var latenciesOverTime = JSON.parse('${latenciesOverTime!"{}"}');
-    var connectTimeOverTime = JSON.parse('${connectTimeOverTime!"{}"}');
-    var responseTimePercentilesOverTime = JSON.parse('${responseTimePercentilesOverTime!"{}"}');
-    var responseTimeVsRequest = JSON.parse('${responseTimeVsRequest!"{}"}');
-    var latencyVsRequest = JSON.parse('${latencyVsRequest!"{}"}');
-    var hitsPerSecond = JSON.parse('${hitsPerSecond!"{}"}');
-    var codesPerSecond = JSON.parse('${codesPerSecond!"{}"}');
-    var transactionsPerSecond =JSON.parse('${transactionsPerSecond!"{}"}');
-
-var dataBasedOnTime = [responseTimePercentilesOverTime, 
+var dataBasedOnTime = [responseTimePercentilesOverTime,
                        responseTimeVsRequest, 
                        responseTimesOverTime, 
                        latenciesOverTime, 
@@ -877,9 +861,3 @@ function drawBarGraph(){
         window.myPie = new Chart(ctx, config);
     };
 }
-
-var showControllersOnly = '${showControllersOnly?c!"false"}';
-var seriesFilter = '${seriesFilter!"undefined"}';
-var filtersOnlySampleSeries = '${filtersOnlySampleSeries?c!"false"}';
-
-var timeZoneOffset = '${(timeZoneOffset?c)!0}';

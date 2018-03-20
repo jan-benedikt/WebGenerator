@@ -47,13 +47,12 @@ public class WebGenerator extends AbstractVisualizer {
     private Map<String, Calculator> tableRows = new ConcurrentHashMap<>();
     private Map<String, SamplingStatCalculator> samplingRows = new ConcurrentHashMap<>();
     private final transient Object lock = new Object(); // Object for threads synchronization
-    private final String TOTAL_ROW_LABEL = JMeterUtils.getResString("wgen_row_total");  //Name of "TOTAL" row in Calculator class
+    private final String TOTAL_ROW_LABEL = JMeterUtils.getResString("web_generator_row_total");  //Name of "TOTAL" row in Calculator class
 
     private JButton generateWebsiteButton; // Button for website generating
     private JTextField textPath; // After website generating is shown here path to the folder with website
     private JCheckBox afterEndGenerateWebsite; // After check automatically generates website
     private JCheckBox checkInclGroupName; // After check is in results included name of thread group
-    private JTextField pathToTemplateFolder; //
 
     private String reportOutputFolder = ""; // Variable for path to generating website
     private boolean changeName = false; // Auxiliary variables for control of csv file
@@ -64,7 +63,6 @@ public class WebGenerator extends AbstractVisualizer {
     private static final String WSPATH = "WebGenerator.websitePath";
     private static final String GENAFTE = "WebGenerator.checkGenerateAfterTest";
     private static final String INCLTHN = "WebGenerator.inclThreadGrpName";
-    private static final String PTWT = "WebGenerator.pathToWesiteTemplate";
     private static final String JMETER_REPORT_TEMPLATE_DIR_PROPERTY =
             "jmeter.reportgenerator.exporter.html.property.template_dir";
 
@@ -78,7 +76,6 @@ public class WebGenerator extends AbstractVisualizer {
         element.setProperty(WebGenerator.GENAFTE, afterEndGenerateWebsite.isSelected());
         element.setProperty(WebGenerator.INCLTHN, checkInclGroupName.isSelected());
         element.setProperty(WebGenerator.WSPATH, textPath.getText());
-        element.setProperty(WebGenerator.PTWT, pathToTemplateFolder.getText());
     }
 
     /**
@@ -90,7 +87,6 @@ public class WebGenerator extends AbstractVisualizer {
         afterEndGenerateWebsite.setSelected(element.getPropertyAsBoolean(WebGenerator.GENAFTE));
         checkInclGroupName.setSelected(element.getPropertyAsBoolean(WebGenerator.INCLTHN));
         textPath.setText(element.getPropertyAsString(WebGenerator.WSPATH));
-        pathToTemplateFolder.setText(WebGenerator.PTWT);
     }
 
     /**
@@ -102,7 +98,8 @@ public class WebGenerator extends AbstractVisualizer {
         clearData();
         init();
     }
-    
+
+
     /**
      * Get the component's resource name, which getStaticLabel uses to derive
      * the component's label in the local language. The resource name is fixed,
@@ -112,7 +109,7 @@ public class WebGenerator extends AbstractVisualizer {
      */
     @Override
     public String getLabelResource() {
-        return "web_generator";
+        return "web_generator_generator";
     }
 
     /**
@@ -155,30 +152,30 @@ public class WebGenerator extends AbstractVisualizer {
                     }
                     while (!checkIfFileExist(filePath)) {
                         StandardJMeterEngine.stopEngineNow();
-                        log.info(JMeterUtils.getResString("wgen_log_new_name"));
+                        log.info(JMeterUtils.getResString("web_generator_log_new_name"));
                         String s = (String) JOptionPane.showInputDialog(
                                 null,
-                                JMeterUtils.getResString("wgen_dialog_part1_file")
+                                JMeterUtils.getResString("web_generator_dialog_part1_file")
                                         + "\n" + filePath + "\n"
-                                        +  JMeterUtils.getResString("wgen_dialog_part2_already") + "\n"
-                                        + "\"" + JMeterUtils.getResString("wgen_dialog_part3_name") + "\"",
-                                JMeterUtils.getResString("wgen_dialog_title"),
+                                        +  JMeterUtils.getResString("web_generator_dialog_part2_already") + "\n"
+                                        + "\"" + JMeterUtils.getResString("web_generator_dialog_part3_name") + "\"",
+                                JMeterUtils.getResString("web_generator_dialog_title"),
                                 JOptionPane.PLAIN_MESSAGE,
                                 null,
                                 null,
-                                JMeterUtils.getResString("wgen_name"));
+                                JMeterUtils.getResString("web_generator_name"));
 
 
                         if ((s != null) && (s.length() > 0)) {
                             setFile(getFolder(filePath) + "\\" + s + ".csv");
                             JOptionPane.showMessageDialog(null,
-                                    JMeterUtils.getResString("wgen_dialog_thank_you"));
+                                    JMeterUtils.getResString("web_generator_dialog_thank_you"));
                             return;
                         } else {
-                            log.error(JMeterUtils.getResString("wgen_log_error_data_old_test"));
+                            log.error(JMeterUtils.getResString("web_generator_log_error_data_old_test"));
                             JOptionPane.showMessageDialog(null,
-                                    JMeterUtils.getResString("wgen_dialog_new_empty_file"),
-                                    JMeterUtils.getResString("wgen_log_error_data_old_test"),
+                                    JMeterUtils.getResString("web_generator_dialog_new_empty_file"),
+                                    JMeterUtils.getResString("web_generator_log_error_data_old_test"),
                                     JOptionPane.ERROR_MESSAGE);
                         }
 
@@ -201,7 +198,7 @@ public class WebGenerator extends AbstractVisualizer {
                         try {
                             callGenerator();
                         } catch (GenerationException e) {
-                            log.error(JMeterUtils.getResString("wgen_log_problem_generating_website") + " " + e);
+                            log.error(JMeterUtils.getResString("web_generator_log_problem_generating_website") + " " + e);
                         }
                     }
                     generateWebsiteButton.setEnabled(true);
@@ -218,7 +215,7 @@ public class WebGenerator extends AbstractVisualizer {
         try{
             StandardJMeterEngine.register(listen);
         }catch(Exception e){
-            log.error(JMeterUtils.getResString("wgen_log_cant_register"));
+            log.error(JMeterUtils.getResString("web_generator_log_cant_register"));
         }
 
     }
@@ -261,14 +258,14 @@ public class WebGenerator extends AbstractVisualizer {
             BufferedReader br = new BufferedReader(new FileReader(path));
             if (br.readLine() == null) {
                 br.close();
-                log.info(JMeterUtils.getResString("wgen_log_no_errors_empty"));
+                log.info(JMeterUtils.getResString("web_generator_log_no_errors_empty"));
                 return true;
             } else {
                 br.close();
                 return false;
             }
         } catch (Exception e) {
-            log.error(JMeterUtils.getResString("wgen_log_cant_open_file") +'\n' + e.getLocalizedMessage());
+            log.error(JMeterUtils.getResString("web_generator_log_cant_open_file") +'\n' + e.getLocalizedMessage());
             return false;
         }
     }
@@ -279,42 +276,24 @@ public class WebGenerator extends AbstractVisualizer {
     private void makeUI() {
         // CREATE Control Panel (properties of generating website)
         JPanel controlPanel = new JPanel();
-        controlPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), JMeterUtils.getResString("wgen_options"))); //$NON-NLS-1$
+        controlPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), JMeterUtils.getResString("web_generator_options"))); //$NON-NLS-1$
 
         SpringLayout layout = new SpringLayout();
 
-        afterEndGenerateWebsite = new JCheckBox(JMeterUtils.getResString("wgen_auto_generate_website"), true);
-        generateWebsiteButton = new JButton(JMeterUtils.getResString("wgen_generate"));
-        checkInclGroupName = new JCheckBox(JMeterUtils.getResString("wgen_include_thg_name"), false);
-        textPath = new JTextField(JMeterUtils.getResString("wgen_path_to_gen_web"));
+        afterEndGenerateWebsite = new JCheckBox(JMeterUtils.getResString("web_generator_auto_generate_website"), true);
+        generateWebsiteButton = new JButton(JMeterUtils.getResString("web_generator_generate"));
+        checkInclGroupName = new JCheckBox(JMeterUtils.getResString("web_generator_include_thg_name"), false);
+        textPath = new JTextField(JMeterUtils.getResString("web_generator_path_to_gen_web"));
         textPath.setSize(afterEndGenerateWebsite.getSize());
         textPath.setEnabled(false);
         generateWebsiteButton.setEnabled(false);
-
-        pathToTemplateFolder = new JTextField(JMeterUtils.getResString("wgen_template_folder"));
-        pathToTemplateFolder.setEnabled(false);
-        pathToTemplateFolder.setSize(afterEndGenerateWebsite.getSize());
-        JButton getPathToTemplateFolder = new JButton(JMeterUtils.getResString("wgen_get_template_path"));
 
         generateWebsiteButton.addActionListener((ActionEvent e) -> {
             try {
                 filePath = getFile();
                 callGenerator();
             } catch (GenerationException e1) {
-                log.error(JMeterUtils.getResString("wgen_log_cant_add_listener") + " " + e1);
-            }
-        });
-
-        getPathToTemplateFolder.addActionListener((ActionEvent e) -> {
-            JFileChooser chooser = new JFileChooser();
-            // Note: source for ExampleFileFilter can be found in FileChooserDemo,
-            // under the demo/jfc directory in the JDK.
-            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            int returnVal = chooser.showOpenDialog(null);
-            if(returnVal == JFileChooser.APPROVE_OPTION) {
-                System.out.println("You chose to open this file: " +
-                        chooser.getSelectedFile().getName());
-                pathToTemplateFolder.setText(chooser.getSelectedFile().getAbsolutePath());
+                log.error(JMeterUtils.getResString("web_generator_log_cant_add_listener") + " " + e1);
             }
         });
 
@@ -328,9 +307,7 @@ public class WebGenerator extends AbstractVisualizer {
         buttons.add(afterEndGenerateWebsite);
         buttons.add(textPath);
         buttons.add(generateWebsiteButton);
-        buttons.add(pathToTemplateFolder);
-        buttons.add(getPathToTemplateFolder);
-        buttons.setBorder(new TitledBorder(JMeterUtils.getResString("wgen_options")));
+        buttons.setBorder(new TitledBorder(JMeterUtils.getResString("web_generator_options")));
 
         controls.add(buttons, BorderLayout.NORTH);
 
@@ -383,13 +360,24 @@ public class WebGenerator extends AbstractVisualizer {
         //Set global variable „.JMETER_REPORT_OUTPUT_DIR_PROPERTY“:
         JMeterUtils.setProperty(JMeter.JMETER_REPORT_OUTPUT_DIR_PROPERTY, reportOutputFolderAsFile.getAbsolutePath());
         //Set JMeter property of path to website template
-        JMeterUtils.setProperty(JMETER_REPORT_TEMPLATE_DIR_PROPERTY, pathToTemplateFolder.getText());
+        String jmeterHomeDir;
+        if (System.getProperty("jmeter.home") == null) {
+            File userDir = new File(System.getProperty("user.dir"));
+            jmeterHomeDir = userDir.getAbsoluteFile().getParent();
+        } else {
+            jmeterHomeDir = System.getProperty("jmeter.home");
+        }
+        String pathToTemplate = jmeterHomeDir + "/lib/ext/WebGenerator/report_template";
+        pathToTemplate = FilenameUtils.separatorsToSystem(pathToTemplate);
+        JMeterUtils.setProperty(JMETER_REPORT_TEMPLATE_DIR_PROPERTY, pathToTemplate);
+        log.error(pathToTemplate);
+
         //Create of instance „ReportGenerator“ (in argument passes way to file with source data):
         ReportGenerator generator = null;
         try {
             generator = new ReportGenerator(filePath, null);
         } catch (ConfigurationException e) {
-            log.error(JMeterUtils.getResString("wgen_log_call_report_generator") + " " + e);
+            log.error(JMeterUtils.getResString("web_generator_log_call_report_generator") + " " + e);
         }
         // Start generating:
         if (generator == null) throw new AssertionError();
@@ -400,14 +388,14 @@ public class WebGenerator extends AbstractVisualizer {
         try {
             editFunctionsJS(arrayDataC);
         } catch (Exception e) {
-            log.error(JMeterUtils.getResString("wgen_log_problem_js_file") + " " + e);
+            log.error(JMeterUtils.getResString("web_generator_log_problem_js_file") + " " + e);
         }
 
 
         try {
             Desktop.getDesktop().open(new File(reportOutputFolder));
         } catch (IOException e) {
-            log.error(JMeterUtils.getResString("wgen_log_open_folder") + " " + e);
+            log.error(JMeterUtils.getResString("web_generator_log_open_folder") + " " + e);
         }
     }
 
@@ -655,10 +643,10 @@ public class WebGenerator extends AbstractVisualizer {
      */
     private void editFunctionsJS(ArrayList<dataCollector> arrayCompleteData) {
         saveToList(tableRows, samplingRows); //Here is passes data from calculator adn samplingCalculator
-        total.setName(JMeterUtils.getResString("wgen_row_total"));
+        total.setName(JMeterUtils.getResString("web_generator_row_total"));
         if (arrayCompleteData != null) {
 
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(reportOutputFolder + "\\content\\js\\functions.js", true))) {
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(reportOutputFolder + "\\content\\js\\data.js", true))) {
 
                 bw.newLine();
                 bw.write("var threadGroupsCount = " + Integer.toString(arrayCompleteData.size()) + ";");
@@ -735,7 +723,7 @@ public class WebGenerator extends AbstractVisualizer {
                 bw.write("]];");
                 bw.flush();
             } catch (Exception e) {
-                log.error(JMeterUtils.getResString("wgen_log_error_writing_js") + " " + reportOutputFolder + "\\content\\js\\functions.js");
+                log.error(JMeterUtils.getResString("web_generator_log_error_writing_js") + " " + reportOutputFolder + "\\content\\js\\data.js");
             }
         }
     }
@@ -910,4 +898,4 @@ public class WebGenerator extends AbstractVisualizer {
             this.percentile_99th = percentile_99th;
         }
     }
-}}
+}

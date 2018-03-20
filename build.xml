@@ -1,0 +1,160 @@
+<?xml version="1.0"?>
+
+<project name="web_generator" default="package" basedir=".">
+  <description>
+	To build ${ant.project.name} project and copy resulting jar to JMeter folder for extensions run:
+  		ant [package]
+  	
+  	To install ${ant.project.name} project resource files run:
+  		ant install_res
+  	and then build JMeter to update resource strings in the JMeter core jar
+  </description>
+
+  <!--
+  Optional jars, not included in distribution.
+  Any such jars need to be downloaded separately.
+  These can be put into ${lib.dir} or ${lib.opt}
+  - both of these are included in the build classpath
+
+  Any jars put into ${lib.dir} will be included in
+  the classpath used by JMeter to load classes.
+  Jars in ${lib.opt} are NOT normally included by JMeter.
+
+  Placing an optional jar in ${lib.opt} means that it
+  will be included in the build classpath, but it will
+  not be included in the runtime classpath. This is intended
+  for testing JMeter without the optional Jar file(s).src
+  -->
+
+	<property name="jmeter.home.dir" value="${basedir}/../../.."/>
+  
+	<!-- Directory where these 3rd party libraries live -->
+	<property name="lib.dir" value="${jmeter.home.dir}/lib"/>
+	<!-- Directory where API spec libraries live -->
+	<property name="lib.api" value="${jmeter.home.dir}/lib/api"/>
+	<!-- Directory where Optional 3rd party libraries live -->
+	<property name="lib.opt" value="${jmeter.home.dir}/lib/opt"/>
+	
+	<!-- Build classpath -->
+	<path id="classpath">
+	    <!-- Generated and externally produced jars -->    
+	    <fileset dir="${lib.dir}" includes="*.jar"/>    
+	    <!-- API-only jars-->
+	    <fileset dir="${lib.api}" includes="*.jar"/>
+	    <!-- Optional jars -->
+	    <fileset dir="${lib.opt}" includes="*.jar"/>
+	</path>
+
+	<property name="project.dirname" value="webgenerator"/>
+	<property name="src" value="src"/>
+	<property name="res" value="res"/>
+	<property name="build" value="${jmeter.home.dir}/build/gity"/>
+	<property name="dest.jar" value="${jmeter.home.dir}/lib/ext"/>
+	<property name="dest.res" value="${jmeter.home.dir}/lib/ext/${project.dirname}"/>
+	<property name="properties.dir" value="${jmeter.home.dir}/src/core/org/apache/jmeter/resources"/>
+	<property name="properties.filename" value="messages.properties"/>
+	
+	 <!-- Compilation parameters -->
+	<property name="optimize" value="on"/>
+	<property name="deprecation" value="off"/>
+	<property name="target.java.version" value="1.8"/>
+	<property name="src.java.version" value="1.8"/>
+	<property name="encoding" value="UTF-8"/>	 
+		
+	<target name="clear_build" description="Deletes classes and jar from previous build for case some class is removed from the component">
+		<delete>
+			<fileset dir="${build}/${project.dirname}" includes="**/*"/>
+			<filelist dir="${dest.jar}" files="${ant.project.name}.jar"/>
+		</delete>
+	</target>
+		
+	<target name="compile" description="Compile components classes">		
+		<mkdir dir="${build}/${project.dirname}"/>
+		<javac srcdir="${src}" destdir="${build}/${project.dirname}" source="${src.java.version}" optimize="${optimize}" debug="on" 
+			target="${target.java.version}"	includeAntRuntime="${includeAntRuntime}" deprecation="${deprecation}" encoding="${encoding}">
+			<include name="**/*.java"/>
+			<classpath>
+				<pathelement location="${jmeter.home.dir}/build/core"/>
+				<path refid="classpath"/>
+			</classpath>
+		</javac>	
+	</target>
+	
+	<target name="package" depends="compile" description="Creates jars from already compiled files and places them into JMeter folder for extensions">		
+		<jar jarfile="${dest.jar}/${ant.project.name}.jar">
+			<fileset dir="${build}/${project.dirname}" includes="**/*.class" />		      
+		</jar>
+	</target>
+	
+	<target name="install_res"  description="Installs auxiliary files and resources">
+		<echo message="Installing auxiliary files..." level="info"/>
+		<copy todir="${dest.res}">
+			<fileset dir="${res}">
+				<exclude name="*.properties"/>
+			</fileset>
+		</copy>
+		<setpermissions mode="755">
+			<fileset dir="${dest.res}">
+				<include name="*.sh"/>
+			</fileset>
+		</setpermissions>
+		
+		<!-- Adjust components string file to local conventions and eventualy adds missing EOL to the last line --> 
+		<fixcrlf srcdir="${res}" includes="${properties.filename}" fixlast="true"/>
+		
+		<!-- Backup of original mesages.properties file -->
+		<echo message="Creating backup of original messages.properties file..." level="info"/>
+		<tstamp>
+			<format property="properties.time" pattern="yyy-MM-dd_HH-mm-ss"/>
+		</tstamp>			
+		<property name="properties.backup.file" value="${properties.dir}/messages_backup_${properties.time}.properties"/>
+		<copy file="${properties.dir}/${properties.filename}" tofile="${properties.backup.file}"/>
+		
+		
+		<echo message="Adding resources to messages.properties file..." level="info"/>
+		<!-- Copy content of original properties file into temp file without comment lines and lines which belongs to this 
+		components if there are any to avoid duplicates -->
+		<tempfile property="properties.temp.file" destdir="${build}" createfile="true" deleteonexit="true"/>
+		<copy file="${properties.dir}/${properties.filename}" tofile="${properties.temp.file}" overwrite="true">
+			<filterchain>
+				<linecontainsregexp negate="true">
+					<regexp pattern="^(#|\r|\n|${ant.project.name}).*$"/>					
+				</linecontainsregexp>				
+			</filterchain>		
+		</copy>		
+		
+		<!-- Appends component's resource strings to the temp file -->
+		<concat destfile="${properties.temp.file}" append="yes">
+			<filelist dir="${res}" files="${properties.filename}"/>			
+		</concat>
+				
+	
+		<!-- Loads comment lines from original JMeter property file into a property -->
+		<loadfile property="properties.comments" srcfile="${properties.dir}/${properties.filename}" encoding="${encoding}">		
+			<filterchain>
+				<linecontainsregexp>
+					<regexp pattern="^(#|\r|\n).*$"/>					
+				</linecontainsregexp>
+			</filterchain>							
+		</loadfile>
+		
+		
+		<!-- Loads temp file content into a property while sorting it alphabeticaly -->
+		<loadfile property="properties.sorted" srcfile="${properties.temp.file}">
+			<filterchain>
+				<sortfilter/>	
+			</filterchain>		
+		</loadfile>
+
+		
+		<!-- Writes comments and all sorted resource strings to the JMeter properties file -->
+		<concat destfile="${properties.dir}/${properties.filename}" append="no" overwrite="yes">
+			<propertyset>
+				<propertyref name="properties.comments"/>
+				<propertyref name="properties.sorted"/>
+			</propertyset>
+		</concat>
+		
+	</target>	
+	
+</project>
