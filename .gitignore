@@ -4,6 +4,12 @@
 # Log file
 *.log
 
+# Ignore folders
+ .idea/*
+
+# Iml files
+ *.iml
+
 # BlueJ files
 *.ctxt
 

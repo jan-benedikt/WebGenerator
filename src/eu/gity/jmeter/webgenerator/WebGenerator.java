@@ -5,6 +5,8 @@ import org.apache.jmeter.engine.StandardJMeterEngine;
 import org.apache.jmeter.report.config.ConfigurationException;
 import org.apache.jmeter.report.dashboard.GenerationException;
 import org.apache.jmeter.report.dashboard.ReportGenerator;
+import org.apache.jmeter.reporters.ResultCollector;
+import org.apache.jmeter.samplers.SampleSaveConfiguration;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.testelement.TestStateListener;
@@ -14,6 +16,7 @@ import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.visualizers.SamplingStatCalculator;
 import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
 import org.apache.jorphan.util.JOrphanUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +31,8 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.io.Serializable;
+import java.lang.Cloneable;
 
 
 /**
@@ -53,9 +58,8 @@ public class WebGenerator extends AbstractVisualizer {
     private JTextField textPath; // After website generating is shown here path to the folder with website
     private JCheckBox afterEndGenerateWebsite; // After check automatically generates website
     private JCheckBox checkInclGroupName; // After check is in results included name of thread group
-
+    private boolean running = false; // Status of JMeter engine if running or not.
     private String reportOutputFolder = ""; // Variable for path to generating website
-    private boolean changeName = false; // Auxiliary variables for control of csv file
     private String filePath;  // Variable for path to the folder with csv file
 
     private static final String webGeneratorGuiClass = (WebGenerator.class).getCanonicalName();
@@ -76,6 +80,8 @@ public class WebGenerator extends AbstractVisualizer {
         element.setProperty(WebGenerator.GENAFTE, afterEndGenerateWebsite.isSelected());
         element.setProperty(WebGenerator.INCLTHN, checkInclGroupName.isSelected());
         element.setProperty(WebGenerator.WSPATH, textPath.getText());
+
+        configureSaving(getModel());
     }
 
     /**
@@ -91,12 +97,43 @@ public class WebGenerator extends AbstractVisualizer {
 
     /**
      * Constructor of module WebGenerator.
-     * In constructor is called method "clearData" and "init". Those methods are for preparation of first run.
+     * In constructor is called method "getInstance" of WebGenerator Tree guard and "clearData". Those methods are for preparation of first run.
      */
     public WebGenerator() {
+        super();
+
     	WebGeneratorTreeGuard.getInstance().registerListeners();
         clearData();
         init();
+    }
+
+    /**
+     * Modifies sample save config to save only necessary sample result fields into the result file
+     *
+     * @param rc ResultCollector of this visualizer
+     */
+    private void configureSaving(ResultCollector rc) {
+        SampleSaveConfiguration saveConfig = new SampleSaveConfiguration(false);
+        saveConfig.setTime(true);  //Elapsed time
+        saveConfig.setIdleTime(true); //Iddle time
+        saveConfig.setSuccess(true); //Success
+        saveConfig.setLabel(true); //Label
+        saveConfig.setThreadName(true); //Thread name
+        saveConfig.setTimestamp(true); //Timestamp
+        saveConfig.setCode(true); // Response code
+        saveConfig.setSentBytes(true); //sent byt count
+        saveConfig.setMessage(true); // response message?
+        saveConfig.setFieldNames(true); //Field names
+        saveConfig.setAssertionResultsFailureMessage(true);//Assertion Results Failure Message
+        saveConfig.setThreadCounts(true); //Active Thread counts
+        saveConfig.setLatency(true); //Latency
+        saveConfig.setSampleCount(true); //Sample and error count
+        saveConfig.setDataType(true); //Data type
+        saveConfig.setBytes(true); //received byte count
+        saveConfig.setUrl(true); //URL
+        saveConfig.setConnectTime(true); //connect time
+        saveConfig.setHostname(true); // hostname
+        rc.setSaveConfig(saveConfig);
     }
 
 
@@ -133,55 +170,11 @@ public class WebGenerator extends AbstractVisualizer {
         TestStateListener listen = new TestStateListener() {
             @Override
             public void testStarted() {
-                while (!changeName) {
-                    if (getFile().equals("")) {
-                        break;
-                    }
-                    filePath = getFile();
+                running = true;
+                filePath = getFile();
 
-                    if (filePath.equals("")) {
-                        JFileChooser chooser = new JFileChooser();
-                        FileNameExtensionFilter filter = new FileNameExtensionFilter(
-                                "CSV  files", "csv");
-                        chooser.setFileFilter(filter);
-                        int returnVal = chooser.showOpenDialog(null);
-                        if (returnVal == JFileChooser.APPROVE_OPTION) {
-                            setFile(chooser.getSelectedFile().getAbsolutePath());
-                            filePath = getFile();
-                        }
-                    }
-                    while (!checkIfFileExist(filePath)) {
-                        StandardJMeterEngine.stopEngineNow();
-                        log.info(JMeterUtils.getResString("web_generator_log_new_name"));
-                        String s = (String) JOptionPane.showInputDialog(
-                                null,
-                                JMeterUtils.getResString("web_generator_dialog_part1_file")
-                                        + "\n" + filePath + "\n"
-                                        +  JMeterUtils.getResString("web_generator_dialog_part2_already") + "\n"
-                                        + "\"" + JMeterUtils.getResString("web_generator_dialog_part3_name") + "\"",
-                                JMeterUtils.getResString("web_generator_dialog_title"),
-                                JOptionPane.PLAIN_MESSAGE,
-                                null,
-                                null,
-                                JMeterUtils.getResString("web_generator_name"));
-
-
-                        if ((s != null) && (s.length() > 0)) {
-                            setFile(getFolder(filePath) + "\\" + s + ".csv");
-                            JOptionPane.showMessageDialog(null,
-                                    JMeterUtils.getResString("web_generator_dialog_thank_you"));
-                            return;
-                        } else {
-                            log.error(JMeterUtils.getResString("web_generator_log_error_data_old_test"));
-                            JOptionPane.showMessageDialog(null,
-                                    JMeterUtils.getResString("web_generator_dialog_new_empty_file"),
-                                    JMeterUtils.getResString("web_generator_log_error_data_old_test"),
-                                    JOptionPane.ERROR_MESSAGE);
-                        }
-
-                    }
-                }
                 generateWebsiteButton.setEnabled(false);
+                checkInclGroupName.setEnabled(false);
                 clearData();
             }
 
@@ -192,18 +185,19 @@ public class WebGenerator extends AbstractVisualizer {
 
             @Override
             public void testEnded() {
-                if (changeName) {
+                running = false;
+                if(!(filePath.equals(null) || filePath.equals("") || (filePath.length() <= 0))) {
                     if (afterEndGenerateWebsite.isSelected()) {
-                        changeName = !changeName;
                         try {
+                            filePath = getFile();
                             callGenerator();
                         } catch (GenerationException e) {
                             log.error(JMeterUtils.getResString("web_generator_log_problem_generating_website") + " " + e);
                         }
                     }
                     generateWebsiteButton.setEnabled(true);
+                    checkInclGroupName.setEnabled(true);
                 }
-                changeName = true;
                 reRegister();
             }
 
@@ -228,49 +222,6 @@ public class WebGenerator extends AbstractVisualizer {
     }
 
     /**
-     * Here is checking existence of file, where will be written results of testing.
-     *
-     * @param path path to file
-     * @return If file exists - return true, if is not - return false.
-     */
-    private boolean checkIfFileExist(final String path) {
-        File f = new File(path);
-        if (f.exists() && !f.isDirectory()) {
-            if (checkFileIsEmpty(f)) {
-                changeName = true;
-                return true;
-            } else {
-                return false;
-            }
-        } else {
-            return f.exists() || f.isDirectory();
-        }
-    }
-
-    /**
-     * If file is exists, check if is empty.
-     *
-     * @param path path to file.
-     * @return If file is empty - return true, if is not - return false.
-     */
-    private boolean checkFileIsEmpty(final File path) {
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(path));
-            if (br.readLine() == null) {
-                br.close();
-                log.info(JMeterUtils.getResString("web_generator_log_no_errors_empty"));
-                return true;
-            } else {
-                br.close();
-                return false;
-            }
-        } catch (Exception e) {
-            log.error(JMeterUtils.getResString("web_generator_log_cant_open_file") +'\n' + e.getLocalizedMessage());
-            return false;
-        }
-    }
-
-    /**
      * Method for rendering UI in module WebGenerator.
      */
     private void makeUI() {
@@ -280,7 +231,7 @@ public class WebGenerator extends AbstractVisualizer {
 
         SpringLayout layout = new SpringLayout();
 
-        afterEndGenerateWebsite = new JCheckBox(JMeterUtils.getResString("web_generator_auto_generate_website"), true);
+        afterEndGenerateWebsite = new JCheckBox(JMeterUtils.getResString("web_generator_auto_generate_website"), false);
         generateWebsiteButton = new JButton(JMeterUtils.getResString("web_generator_generate"));
         checkInclGroupName = new JCheckBox(JMeterUtils.getResString("web_generator_include_thg_name"), false);
         textPath = new JTextField(JMeterUtils.getResString("web_generator_path_to_gen_web"));
@@ -328,7 +279,7 @@ public class WebGenerator extends AbstractVisualizer {
      * @return path to folder.
      */
     private String getFolder(String path) {
-        int sep = path.lastIndexOf('\\');
+        int sep = path.lastIndexOf(File.separatorChar);
         return path.substring(0, sep);
     }
 
@@ -343,9 +294,21 @@ public class WebGenerator extends AbstractVisualizer {
         Date date = new Date();
 
         //Creating of final folder:
-        reportOutputFolder = (getFolder(filePath) + "\\" + (ft.format(date)));
+        reportOutputFolder = (getFolder(filePath) + File.separatorChar + (ft.format(date)));
         textPath.setText(reportOutputFolder);
         textPath.setEnabled(true);
+    }
+
+    /**
+     * Mathod for dynamically set of granularity in graph. This granularity depends on lenght of testing.
+     * Longer test bigger granularity.
+     * Shorter test smaller granularity.
+     *
+     * @param startTimeMillis - Start time of test in miliseconds (unix time).
+     * @param endTimeMillis - End time of test in miliseconds (unix time).
+     */
+    private void setGranularity(int startTimeMillis, int endTimeMillis){
+
     }
 
     /**
@@ -367,10 +330,9 @@ public class WebGenerator extends AbstractVisualizer {
         } else {
             jmeterHomeDir = System.getProperty("jmeter.home");
         }
-        String pathToTemplate = jmeterHomeDir + "/lib/ext/WebGenerator/report_template";
+        String pathToTemplate = jmeterHomeDir + "/lib/ext/webgenerator/report_template";
         pathToTemplate = FilenameUtils.separatorsToSystem(pathToTemplate);
         JMeterUtils.setProperty(JMETER_REPORT_TEMPLATE_DIR_PROPERTY, pathToTemplate);
-        log.error(pathToTemplate);
 
         //Create of instance „ReportGenerator“ (in argument passes way to file with source data):
         ReportGenerator generator = null;
@@ -393,6 +355,7 @@ public class WebGenerator extends AbstractVisualizer {
 
 
         try {
+
             Desktop.getDesktop().open(new File(reportOutputFolder));
         } catch (IOException e) {
             log.error(JMeterUtils.getResString("web_generator_log_open_folder") + " " + e);
@@ -443,7 +406,9 @@ public class WebGenerator extends AbstractVisualizer {
      */
     @Override
     public void add(final SampleResult sample) {
-        generateWebsiteButton.setEnabled(true);
+        if(!running) {
+            generateWebsiteButton.setEnabled(true);
+        }
         final String sampleLabel = sample.getSampleLabel(checkInclGroupName.isSelected());
         Calculator calc; //Initialize method Calculator which collects data of results
         SamplingStatCalculator samplingCalc; //Initialize method samplingCalculator which collects data of percentiles
@@ -609,32 +574,41 @@ public class WebGenerator extends AbstractVisualizer {
                     //arrayDataC.get(position).setBandwidth(dataC.getBandwidth());
                 }
             }
-            anArrayDataC.setLatency(anArrayDataC.getLatency() / anArrayDataC.getLoopCount());
-            anArrayDataC.setResponseTime(anArrayDataC.getResponseTime() / anArrayDataC.getLoopCount());
-            anArrayDataC.setConnectTime(anArrayDataC.getConnectTime() / anArrayDataC.getLoopCount());
-        }
-        total.setName(TOTAL_ROW_LABEL);
-        total.setLoopCount(dataMap.get(TOTAL_ROW_LABEL).getCount());
-        total.setMean(dataMap.get(TOTAL_ROW_LABEL).getMean());
-        total.setMinDataC(dataMap.get(TOTAL_ROW_LABEL).getMin());
-        total.setMaxDataC(dataMap.get(TOTAL_ROW_LABEL).getMax());
-        total.setStDev(dataMap.get(TOTAL_ROW_LABEL).getStandardDeviation());
-        total.setErrorPercent(dataMap.get(TOTAL_ROW_LABEL).getErrorPercentage());
-        total.setRate(dataMap.get(TOTAL_ROW_LABEL).getRate());
-        total.setReceivedBytes(dataMap.get(TOTAL_ROW_LABEL).getKBPerSecond());
-        total.setSentBytes(dataMap.get(TOTAL_ROW_LABEL).getSentKBPerSecond());
-        total.setAvgBytes(dataMap.get(TOTAL_ROW_LABEL).getAvgPageBytes());
-        //Passes percentiles ---------------------------------------------------------------------
-        total.setPercentile_90th(samplingMap.get(TOTAL_ROW_LABEL).getPercentPoint(0.90).doubleValue());
-        total.setPercentile_95th(samplingMap.get(TOTAL_ROW_LABEL).getPercentPoint(0.95).doubleValue());
-        total.setPercentile_99th(samplingMap.get(TOTAL_ROW_LABEL).getPercentPoint(0.99).doubleValue());
-        // -----------------------------------------------------------------------------------------
-        total.setErrorPercent(total.getErrorPercent() * 100);
-        total.setUserCount(JMeterContextService.getTotalThreads());
+            try {
+                anArrayDataC.setLatency(anArrayDataC.getLatency() / anArrayDataC.getLoopCount());
+                anArrayDataC.setResponseTime(anArrayDataC.getResponseTime() / anArrayDataC.getLoopCount());
+                anArrayDataC.setConnectTime(anArrayDataC.getConnectTime() / anArrayDataC.getLoopCount());
+                log.info("Loop count: " + anArrayDataC.getLoopCount());
+            } catch (Exception e) {
+                log.error(e + "\nError in dividing by " + anArrayDataC.getLoopCount());
+            }
+            total.setName(TOTAL_ROW_LABEL);
+            total.setLoopCount(dataMap.get(TOTAL_ROW_LABEL).getCount());
+            total.setMean(dataMap.get(TOTAL_ROW_LABEL).getMean());
+            total.setMinDataC(dataMap.get(TOTAL_ROW_LABEL).getMin());
+            total.setMaxDataC(dataMap.get(TOTAL_ROW_LABEL).getMax());
+            total.setStDev(dataMap.get(TOTAL_ROW_LABEL).getStandardDeviation());
+            total.setErrorPercent(dataMap.get(TOTAL_ROW_LABEL).getErrorPercentage());
+            total.setRate(dataMap.get(TOTAL_ROW_LABEL).getRate());
+            total.setReceivedBytes(dataMap.get(TOTAL_ROW_LABEL).getKBPerSecond());
+            total.setSentBytes(dataMap.get(TOTAL_ROW_LABEL).getSentKBPerSecond());
+            total.setAvgBytes(dataMap.get(TOTAL_ROW_LABEL).getAvgPageBytes());
+            //Passes percentiles ---------------------------------------------------------------------
+            total.setPercentile_90th(samplingMap.get(TOTAL_ROW_LABEL).getPercentPoint(0.90).doubleValue());
+            total.setPercentile_95th(samplingMap.get(TOTAL_ROW_LABEL).getPercentPoint(0.95).doubleValue());
+            total.setPercentile_99th(samplingMap.get(TOTAL_ROW_LABEL).getPercentPoint(0.99).doubleValue());
+            // -----------------------------------------------------------------------------------------
+            total.setErrorPercent(total.getErrorPercent() * 100);
+            total.setUserCount(JMeterContextService.getTotalThreads());
 
-        total.setLatency(total.getLatency() / total.getLoopCount());
-        total.setResponseTime(total.getResponseTime() / total.getLoopCount());
-        total.setConnectTime(total.getConnectTime() / total.getLoopCount());
+            try {
+                total.setLatency(total.getLatency() / total.getLoopCount());
+                total.setResponseTime(total.getResponseTime() / total.getLoopCount());
+                total.setConnectTime(total.getConnectTime() / total.getLoopCount());
+            } catch (Exception e){
+                log.error(e + "\nError in dividing by " + anArrayDataC.getLoopCount());
+            }
+        }
     }
 
     /**
@@ -645,9 +619,9 @@ public class WebGenerator extends AbstractVisualizer {
         saveToList(tableRows, samplingRows); //Here is passes data from calculator adn samplingCalculator
         total.setName(JMeterUtils.getResString("web_generator_row_total"));
         if (arrayCompleteData != null) {
-
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(reportOutputFolder + "\\content\\js\\data.js", true))) {
-
+            String pathToDataFile = reportOutputFolder + "/content/js/data.js";
+            pathToDataFile = FilenameUtils.separatorsToSystem(pathToDataFile);
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(pathToDataFile, true))) {
                 bw.newLine();
                 bw.write("var threadGroupsCount = " + Integer.toString(arrayCompleteData.size()) + ";");
                 bw.newLine();
