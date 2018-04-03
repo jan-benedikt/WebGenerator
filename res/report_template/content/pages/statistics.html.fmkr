@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="cs">
   <head>
@@ -102,4 +103,110 @@
     </script> 
   </body>
                   
+=======
+<!DOCTYPE html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Statistics: ${testFile!""}</title>
+
+    <!-- Bootstrap -->
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+    <script src="../js/jquery-3.1.1.min.js"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <script src="../chart/Chart.js"></script>
+    <script src="../chart//Chart.bundle.js"></script>
+    <script src="../chart//utils.js"></script>
+    <script src="../js/data.js"></script>
+    <script src="../js/functions.js"></script>
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+      <nav class="navbar navbar-inverse">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        <li><a href="../../index.html">Summary</a></li>
+        <li><a href="error.html">Errors</a></li>
+        <li class="active"><a href="statistics.html">Statistics<span class="sr-only">(current)</span></a></li>
+        <li><a href="ddos.html">DDoS</a></li>
+        <li><a href="server.html">Server</a></li>
+        </ul>
+      <ul class="nav navbar-nav pull-right">
+        <li><a href="#" onclick="changeCSS('../css/style.css', 1);">Light Theme</a></li>
+        <li><a href="#" onclick="changeCSS('../css/style2.css', 1);">Dark Theme</a></li>
+        <li><a href="#" onclick="">Gen. PDF</a></li>
+        <li class="logo_vut"><a href="https://www.vutbr.cz"><img src="../img/vut/logo_vut.svg" alt="Logo VUT"></a></li>
+        <li class="logo_gity"><a href="http://www.gity.eu"><img src="../img/gity/logo_gity.svg" alt="Logo GiTy"></a></li>
+      </ul>
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+    <div class="panel panel-default">
+        <div class="panel-info panel-body">
+            <div class="span_info test_name">
+            <span>Tested website</span><br>
+            <span><a href="#" id="tested_URL">NaN</a></span>
+            </div>
+            <div class="span_info test_lenght">
+            <span>Duration of test</span><br>
+            <span id="duration">0</span>
+            </div>
+            <div class="span_info test_start">
+            <span>Start time</span><br>
+            <span id="begin_date">0</span>
+            </div>
+            <div class="span_info test_end">
+            <span>End time</span><br>
+            <span id="end_date">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-body scroll">
+            <table id="mainTable" class="table">
+            </table>
+      </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-body">        
+            <table id="percentilTable" class="table">
+            </table>
+      </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-body scroll">
+            <center><canvas id="percentil" width="800" height="450"></canvas></center>
+        </div>
+   </div>
+    <script type="text/javascript">
+        generateTime('${beginDate!""}', '${endDate!""}');
+        fillURL();
+        createStatisticsTable();
+        createPercentilTable();
+        drawBarGraph();
+    </script> 
+  </body>
+                  
+>>>>>>> master
 </html>
