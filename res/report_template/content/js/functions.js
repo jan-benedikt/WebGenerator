@@ -60,13 +60,12 @@ function drawGraph(typeOfGraph)
         case "basedOnTime":
             fillLineChartData();
             typeOfGraph = typeOfGraph + "_canvas";
-            console.log(typeOfGraph);
             var ctx = document.getElementById(typeOfGraph).getContext("2d");
             myChart = Chart.Line(ctx, canvasData);
             window.myLine = myChart;
-            //Generování vlastní legendy
+            //GenerovĂˇnĂ­ vlastnĂ­ legendy
             document.getElementById('js-legend').innerHTML = myChart.generateLegend();
-            //Procházení legendy a přidání přeškrtnutí
+            //ProchĂˇzenĂ­ legendy a pĹ™idĂˇnĂ­ pĹ™eĹˇkrtnutĂ­
             var firstVariantyUL = $("#js-legend");
                 if (firstVariantyUL.length) {
                 var objects = $("#js-legend li");
@@ -77,32 +76,37 @@ function drawGraph(typeOfGraph)
                     }
                 });
             }
+            $("#js-legend > ul > li").on("click",function(e){
+                            var index = $(this).index();
+                            $(this).toggleClass("strike")
+                            var ci = e.view.myChart;
+                            var meta = ci.getDatasetMeta(index);
+                            var curr = ci.config.data.datasets[index];
+                            curr.hidden = !curr.hidden;
+                            ci.update();
+                        })
             break;
         case "percentiles":
             genPercentileChart();
             typeOfGraph = typeOfGraph + "_canvas";
-            console.log(typeOfGraph);
             var ctx = document.getElementById(typeOfGraph).getContext("2d");
             window.myLine = Chart.Line(ctx, canvasData);
             break;
         case "timeVSThreads":
             genTimeVSThreadsChart();
             typeOfGraph = typeOfGraph + "_canvas";
-            console.log(typeOfGraph);
             var ctx = document.getElementById(typeOfGraph).getContext("2d");
             window.myLine = Chart.Line(ctx, canvasData);
             break;
         case "responseTimeDistribution":
             genresponseTimeDistributionChart();
             typeOfGraph = typeOfGraph + "_canvas";
-            console.log(typeOfGraph);
             var ctx = document.getElementById(typeOfGraph).getContext("2d");
             window.myLine = Chart.Line(ctx, canvasData);
             break;
         case "LatencyVsRequest":
             genLatencyVsRequestChart();
             typeOfGraph = typeOfGraph + "_canvas";
-            console.log(typeOfGraph);
             var ctx = document.getElementById(typeOfGraph).getContext("2d");
             window.myLine = Chart.Line(ctx, canvasData);
             break;
@@ -112,17 +116,16 @@ function drawGraph(typeOfGraph)
     }
 };
 
-var functionCall = 0; // Počet volání funkce pro generování barvy
-var arraySize = 0; // Globální pomocná proměnná pro vytvoření pole pro labels
+var functionCall = 0; // PoÄŤet volĂˇnĂ­ funkce pro generovĂˇnĂ­ barvy
+var arraySize = 0; // GlobĂˇlnĂ­ pomocnĂˇ promÄ›nnĂˇ pro vytvoĹ™enĂ­ pole pro labels
 
-//Dynamicky vytvořený obsah pro graf
-//Podle počtu prvků v poli dataArray přidám do lineChartData.datasets určitý počet objektů, korespondujících s daty v poli dataArray
+//Dynamicky vytvoĹ™enĂ˝ obsah pro graf
+//Podle poÄŤtu prvkĹŻ v poli dataArray pĹ™idĂˇm do lineChartData.datasets urÄŤitĂ˝ poÄŤet objektĹŻ, korespondujĂ­cĂ­ch s daty v poli dataArray
 function createVariables(dataArray){
     functionCall = 0;
     lineChartData.datasets = [];
     lineChartData.labels = [];
 
-    console.log(dataArray);
     var count = 0;
   for (var i = 0; i < dataArray.length; ++i) {
     for(x = 0; x < dataArray[i].result.series.length; x++){
@@ -141,12 +144,9 @@ function createVariables(dataArray){
     }
   }
   arraySize = count;
-  console.log(count);
 }
 
 function genPercentileChart(){
-    console.clear();
-    console.log(responseTimePercentiles);
     var data = [responseTimePercentiles];
     createVariables(data);
     var x = 0;
@@ -185,7 +185,7 @@ function genPercentileChart(){
             a = 0;
             each(pole, function(name) {
                 if(a == 0){
-                            x = name;   
+                            x = name;
                 }
                 if(a == 1){
                        y = name;
@@ -213,8 +213,6 @@ function genPercentileChart(){
 }
 
 function genLatencyVsRequestChart(){
-    console.clear();
-    console.log(latencyVsRequest);
     var data = [latencyVsRequest];
     createVariables(data);
     var labelsArray = [];
@@ -249,6 +247,7 @@ function genLatencyVsRequestChart(){
       for(c = 0; c < data[b].result.series.length; c++){
         lineChartData.labels = [];
         pozice = 0;
+        bubbleSort(data[b].result.series[c].data);
         for(i = 0; i<data[b].result.series[c].data.length;i++){
             var pole = data[b].result.series[c].data[i];
             a = 0;
@@ -274,7 +273,6 @@ function genLatencyVsRequestChart(){
         }
       }
     }
-    console.log(labelsArray);
     var arrayPosition = 0;
     var aSize = labelsArray[0].length;
     for(i = 0; i < labelsArray.length; i++){
@@ -283,7 +281,7 @@ function genLatencyVsRequestChart(){
             arrayPosition = i;
         }
     }
-    lineChartData.labels = labelsArray[arrayPosition]; 
+    lineChartData.labels = labelsArray[arrayPosition];
 
     function each(array, pFunction) {
     for(var i = 0; i < array.length; i++) {
@@ -294,9 +292,8 @@ function genLatencyVsRequestChart(){
 }
 
 function genTimeVSThreadsChart(){
-    console.clear();
-    console.log(timeVsThreads);
     var data = [timeVsThreads];
+
     createVariables(data);
     var labelsArray = [];
     var labelsA = [];
@@ -330,12 +327,13 @@ function genTimeVSThreadsChart(){
       for(c = 0; c < data[b].result.series.length; c++){
         lineChartData.labels = [];
         pozice = 0;
+        bubbleSort(data[b].result.series[c].data);
         for(i = 0; i<data[b].result.series[c].data.length;i++){
             var pole = data[b].result.series[c].data[i];
             a = 0;
             each(pole, function(name) {
                 if(a == 0){
-                        labelsA[pozice] = name;
+                        labelsA[pozice] = Math.round(name);
                 }
                 if(a == 1){
                        y = name;
@@ -355,7 +353,6 @@ function genTimeVSThreadsChart(){
         }
       }
     }
-    console.log(labelsArray);
     var arrayPosition = 0;
     var aSize = labelsArray[0].length;
     for(i = 0; i < labelsArray.length; i++){
@@ -364,7 +361,7 @@ function genTimeVSThreadsChart(){
             arrayPosition = i;
         }
     }
-    lineChartData.labels = labelsArray[arrayPosition]; 
+    lineChartData.labels = labelsArray[arrayPosition];
 
     function each(array, pFunction) {
     for(var i = 0; i < array.length; i++) {
@@ -375,8 +372,6 @@ function genTimeVSThreadsChart(){
 }
 
 function genresponseTimeDistributionChart(){
-    console.clear();
-    console.log(responseTimeDistribution);
     var data = [responseTimeDistribution];
     createVariables(data);
     var labelsArray = [];
@@ -411,6 +406,7 @@ function genresponseTimeDistributionChart(){
       for(c = 0; c < data[b].result.series.length; c++){
         lineChartData.labels = [];
         pozice = 0;
+        bubbleSort(data[b].result.series[c].data);
         for(i = 0; i<data[b].result.series[c].data.length;i++){
             var pole = data[b].result.series[c].data[i];
             a = 0;
@@ -436,7 +432,6 @@ function genresponseTimeDistributionChart(){
         }
       }
     }
-    console.log(labelsArray);
     var arrayPosition = 0;
     var aSize = labelsArray[0].length;
     for(i = 0; i < labelsArray.length; i++){
@@ -445,7 +440,7 @@ function genresponseTimeDistributionChart(){
             arrayPosition = i;
         }
     }
-    lineChartData.labels = labelsArray[arrayPosition]; 
+    lineChartData.labels = labelsArray[arrayPosition];
 
     function each(array, pFunction) {
     for(var i = 0; i < array.length; i++) {
@@ -498,9 +493,8 @@ function fillLineChartData(){
             a = 0;
             each(pole, function(name) {
                 if(a == 0){
-                        var timeData = name + (parseInt(timeZoneOffset)/10);
-                        x = moment(timeData).format();
-                       
+                    var timeData = name + (parseInt(timeZoneOffset)/10);
+                    x = moment(timeData).format();
                 }
                 if(a == 1){
                        y = name;
@@ -518,7 +512,6 @@ function fillLineChartData(){
                 lineChartData.datasets[d].hidden = true;
             }
         }
-        console.log(d);
         d++;
      }
     }
@@ -565,7 +558,7 @@ function drawPieGraph(){
     };
 }
 
-//Změna CSS za běhu
+//ZmÄ›na CSS za bÄ›hu
 function changeCSS(cssFile, cssLinkIndex) {
 
     var oldlink = document.getElementsByTagName("link").item(cssLinkIndex);
@@ -578,7 +571,7 @@ function changeCSS(cssFile, cssLinkIndex) {
     document.getElementsByTagName("head").item(0).replaceChild(newlink, oldlink);
 }
 
-// Generování náhodné barvy pro graf -- generuje HEX kód, který převede na DEC -- průhlednost je nastavena na 10%
+// GenerovĂˇnĂ­ nĂˇhodnĂ© barvy pro graf -- generuje HEX kĂłd, kterĂ˝ pĹ™evede na DEC -- prĹŻhlednost je nastavena na 10%
 
 function getRandomColor() {
     var colorArray = ["4D4D4D", //seda 0
@@ -597,13 +590,13 @@ function getRandomColor() {
     var letters = '0123456789ABCDEF';
     var color = 'rgba(';
     var hexString = "";
-    
+
     for(i = 0; i < colorC.length; i++){
         hexString += colorC[i];
         if(i == 1 || i == 3 || i == 5){
             color += parseInt(hexString, 16);
             hexString = "";
-            color += ", " 
+            color += ", "
         }
     }
 
@@ -616,7 +609,7 @@ function getRandomColor() {
     return color;
 }
 
-//Nastaví transparentnost na 1
+//NastavĂ­ transparentnost na 1
 function deleteTransparency(color){
     var test = color.split("");
     for(var i = test.length-1; i > test.length-5; i--){
@@ -627,13 +620,13 @@ function deleteTransparency(color){
     return test;
 }
 
-//Vykreslí tabulku s nejčastějšími chybami
+//VykreslĂ­ tabulku s nejÄŤastÄ›jĹˇĂ­mi chybami
 function drawErrTable(data){
     var error_data = JSON.parse(data);
 
         $(document).ready(function()
         {
-                    var tableBody = $(document.createElement('tbody'));    
+                    var tableBody = $(document.createElement('tbody'));
                     var row = $(document.createElement('tr'));
                     var newRow = row.clone();
                     tableBody.append(newRow);
@@ -655,13 +648,13 @@ function drawErrTable(data){
                                 var cell = $(document.createElement('td')).html(cislo + " %");
                                 newRow.append(cell.clone());
                             }else{
-                                var cell = $(document.createElement('td')).html(error_data.items[i].data[j]); 
+                                var cell = $(document.createElement('td')).html(error_data.items[i].data[j]);
                                 newRow.append(cell.clone());
                             }
                         }
                     var newRow = row.clone();
                     }
-                
+
                     $('#mainTable').append(tableBody);
         });
 }
@@ -671,38 +664,23 @@ function generateTime(begin, end){
     begin = begin.replace('"', '');
     document.getElementById("begin_date").innerHTML = begin;
 
-    begin = begin.replace(' ', '.');
-    begin = begin.replace(':', '.');
-    var begin_split = begin.split('.');
+    
 
     end = end.replace('"', '');
     end = end.replace('"', '');
     document.getElementById("end_date").innerHTML = end;
 
-    end = end.replace(' ', '.');
-    end = end.replace(':', '.');
-    var end_split = end.split('.');
+    var momentBegin = moment(begin);
+    var momentEnd = moment(end);
 
-    //(year, month, day, hours, minutes, seconds, milliseconds);
-    var begin_date = new Date(20+begin_split[2],begin_split[1]-1,begin_split[0],begin_split[3],begin_split[4]);
-    var end_date = new Date(20+end_split[2],end_split[1]-1,end_split[0],end_split[3],end_split[4]);
-    var substract = Math.abs(end_date.getTime() - begin_date.getTime());
+    print_duration = momentEnd.diff(momentBegin, 'minutes');
 
-    var duration = new Date(substract);
-
-    var print_duration = duration.getHours()-1 + ":"; 
-    if(duration.getMinutes()<10){
-       print_duration += "0"+duration.getMinutes();
-    }else{
-        print_duration += duration.getMinutes();
-    }
-
-    document.getElementById("duration").innerHTML = print_duration;
+    document.getElementById("duration").innerHTML = print_duration + " mins";
 }
 
 function fillData(){
     n_err =  summaryData.KoPercent.toString();
-    document.getElementById("n_err").innerHTML = n_err.substr(0, 5) + "%"; 
+    document.getElementById("n_err").innerHTML = n_err.substr(0, 5) + "%";
     document.getElementById("n_usr").innerHTML = dataResult[dataResult.length-1][1];
     document.getElementById("n_samples").innerHTML =  dataResult[dataResult.length-1][2];
     document.getElementById("n_latence").innerHTML =  Round(dataResult[dataResult.length-1][11],2);
@@ -711,11 +689,10 @@ function fillData(){
 
 function fillURL(){
     document.getElementById("tested_URL").innerHTML =  dataResult[0][15][0];
-    document.getElementById("tested_URL").href= dataResult[0][15][0]; 
+    document.getElementById("tested_URL").href= dataResult[0][15][0];
 }
 
 function fillErrStats(){
-    console.log(n_err);
     n_err =  summaryData.KoPercent.toString();
     n_succ =  summaryData.OkPercent.toString();
     document.getElementById("errSuccess").innerHTML = n_succ.substr(0, 5) + "%";
@@ -732,7 +709,7 @@ function createStatisticsTable(){
 
      $(document).ready(function()
         {
-                    var tableBody = $(document.createElement('tbody'));    
+                    var tableBody = $(document.createElement('tbody'));
                     var row = $(document.createElement('tr'));
                     var newRow = row.clone();
                     tableBody.append(newRow);
@@ -747,7 +724,7 @@ function createStatisticsTable(){
                         tableBody.append(newRow);
                         for (var j = 0; j < dataResult[i].length; j++){
                             if(j == 3 || j == 6 ||j == 5 || j == 8 || j == 9 || j == 10 || j == 11 || j == 7){
-                                var cell = $(document.createElement('td')).html(Round(dataResult[i][j],2)); 
+                                var cell = $(document.createElement('td')).html(Round(dataResult[i][j],2));
                                 newRow.append(cell.clone());
                             }else{
                                 if(((j+1) == dataResult[i].length) && ((i) != dataResult.length)){
@@ -758,19 +735,19 @@ function createStatisticsTable(){
                                     var cell = $(document.createElement('td')).html(
                                          "<button data-toggle='collapse' class='btn btn-danger dropdown-toggle' data-target='#demo" + i + "'>Show URLs</button>"+
                                         "<div id='demo" + i +"' class='collapse'>"+
-                                         urls + 
+                                         urls +
                                         "</div>"
-                                     ); 
+                                     );
                                      newRow.append(cell.clone());
                                 }else{
-                                var cell = $(document.createElement('td')).html(dataResult[i][j]); 
+                                var cell = $(document.createElement('td')).html(dataResult[i][j]);
                                 newRow.append(cell.clone());
                             }
                             }
                         }
                     var newRow = row.clone();
                     }
-                
+
                     $('#mainTable').append(tableBody);
         });
 }
@@ -781,7 +758,7 @@ function createPercentilTable(){
      $(document).ready(function()
         {
 
-                    var tableBody = $(document.createElement('tbody'));    
+                    var tableBody = $(document.createElement('tbody'));
                     var row = $(document.createElement('tr'));
                     var newRow = row.clone();
                     tableBody.append(newRow);
@@ -795,7 +772,7 @@ function createPercentilTable(){
                      for(var i = 0; i < percentile.length; i++){
                         tableBody.append(newRow);
                         for (var j = 0; j < percentile[i].length; j++){
-                            var cell = $(document.createElement('td')).html(percentile[i][j]); 
+                            var cell = $(document.createElement('td')).html(percentile[i][j]);
                             newRow.append(cell.clone());
                         }
                     var newRow = row.clone();
@@ -831,7 +808,6 @@ function drawBarGraph(){
         }
     };
 
-    //console.log("I: " + percentile.length + " | Y: " + percentile[0].length);
     for(var i = 0; i < percentile.length; i++){
         var color = getRandomColor();
         var borderColor = deleteTransparency(color);

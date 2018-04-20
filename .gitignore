@@ -5,7 +5,7 @@
 *.log
 
 # Ignore folders
- .idea/*
+*.idea/*
 
 # Iml files
  *.iml
