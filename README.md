@@ -1,18 +1,28 @@
 # WebGenerator
 JMeter module for website generating from results of stress testing.
 
-__EN:__
-Soon
+## EN:
+### Compile with JMeter project:
+1. To compile module with ANT, it is necessary to have the project (with sources) folder in JMeter _src_ folder.
+2. After running ANT are everything compile to _./bin/ext_ folder.
 
-__CZ:__
+### Compiled JMeter project (bins):
+1. Files _*.jar_ and web template files in the appropriate directory hierarchy copy to _./bin/ext/_ folder.
 
-1. Nakopírujte soubor "WebGenerator.jar" do složky lib/ext/ *
-2. Nakopírujte složku s názvem "report-template" do složky bin/ * (Původní složku zálohujte!)
-3. Spusťte program JMeter a otestujte funkčnost pomocí předpřipraveného projektu "TestScenario.jmx"
-4. Po proběhlém testu je automaticky vygenerovaná webová stránka.**
+### Module functionality testing:
+1. Run the JMeter and test funcitonality with "TestScenario.jmx" scenario file.
 
-* Uvedené složky jsou umístěny v kořenovém adresáři programu JMeter
+Note: Module was tested with version 4.0 (Available on 23.02.2018)
 
-** Webová stránka je vygenerována do složky s .csv souborem.
+## CZ:
+### Kompilace s projektem:
+1. Při kompilaci pomocí ANTu je nutné mít složku s projektem ve složce _src_ projektu JMeter.
+2. Po spuštění ANTu se vše zkompiluje a nakopíruje do příslušných složek v _./bin/ext_.
+
+### Zkompilovaný projekt:
+1. Soubory _.jar_ a soubory šablony v příslušné adresářové hierarchii stačí nakopírovat do složky _./bin/ext/_
+
+### Test funkčnosti modulu:
+1. Spusťte program JMeter a otestujte funkčnost pomocí předpřipraveného projektu "TestScenario.jmx"
 
 Poznámka: Modul byl testován s verzí 4.0 (Dostupná dne 23.02.2018)
